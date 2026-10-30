@@ -10,19 +10,32 @@ const navToggle = document.querySelector('[data-nav-toggle]');
 const navLinks = document.querySelector('.nav__links');
 const mobileNavigation = window.matchMedia('(max-width: 760px)');
 const setNavigationOpen = (open) => {
-  header?.classList.toggle('is-menu-open', open);
-  navToggle?.setAttribute('aria-expanded', String(open));
-  navToggle?.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
+  const isOpen = open && mobileNavigation.matches;
+  if (!isOpen && mobileNavigation.matches && navLinks?.contains(document.activeElement)) {
+    navToggle?.focus({ preventScroll: true });
+  }
+  header?.classList.toggle('is-menu-open', isOpen);
+  navToggle?.setAttribute('aria-expanded', String(isOpen));
+  navToggle?.setAttribute('aria-label', isOpen ? '关闭导航' : '打开导航');
+  if (navLinks) navLinks.inert = mobileNavigation.matches && !isOpen;
 };
+setNavigationOpen(false);
 
-navToggle?.addEventListener('click', () => {
-  setNavigationOpen(navToggle.getAttribute('aria-expanded') !== 'true');
+navToggle?.addEventListener('click', (event) => {
+  const open = navToggle.getAttribute('aria-expanded') !== 'true';
+  setNavigationOpen(open);
+  if (open && event.detail === 0) navLinks?.querySelector('a')?.focus({ preventScroll: true });
 });
-navLinks?.addEventListener('click', (event) => {
+header?.addEventListener('click', (event) => {
   if (event.target.closest('a')) setNavigationOpen(false);
 });
 document.addEventListener('click', (event) => {
-  if (!header?.contains(event.target)) setNavigationOpen(false);
+  if (event.target.closest('[data-nav-backdrop]') || !header?.contains(event.target)) {
+    setNavigationOpen(false);
+  }
+});
+header?.addEventListener('focusout', (event) => {
+  if (event.relatedTarget && !header.contains(event.relatedTarget)) setNavigationOpen(false);
 });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && navToggle?.getAttribute('aria-expanded') === 'true') {
@@ -60,26 +73,82 @@ if (tiltStage && !prefersReducedMotion && window.matchMedia('(pointer: fine)').m
 }
 
 const tabs = document.querySelectorAll('.showcase-tab');
-const screen = document.querySelector('[data-showcase-image]');
+let screen = document.querySelector('[data-showcase-image]');
 const showcasePhone = document.querySelector('.phone--showcase');
+const showcaseStatus = document.querySelector('[data-showcase-status]');
+const screenCache = new Map();
+let switchRequest = 0;
 let swapTimer;
 
-tabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    if (tab.classList.contains('is-active') || !screen) return;
-
-    tabs.forEach((item) => {
-      const isCurrent = item === tab;
-      item.classList.toggle('is-active', isCurrent);
-      item.setAttribute('aria-selected', String(isCurrent));
+const loadShowcaseImage = (tab) => {
+  const file = tab.dataset.screen;
+  if (!screenCache.has(file)) {
+    const image = new Image();
+    image.dataset.showcaseImage = '';
+    image.decoding = 'async';
+    image.alt = `财小通${tab.dataset.label}预览，数据均为虚构`;
+    image.src = `assets/${file}`;
+    const ready = image.decode().then(() => image).catch((error) => {
+      screenCache.delete(file);
+      throw error;
     });
+    screenCache.set(file, ready);
+  }
+  return screenCache.get(file);
+};
 
+const clearShowcaseLoading = () => {
+  tabs.forEach((tab) => tab.classList.remove('is-loading'));
+  showcasePhone?.setAttribute('aria-busy', 'false');
+  if (showcaseStatus) showcaseStatus.textContent = '';
+};
+
+tabs.forEach((tab) => {
+  tab.addEventListener('click', async () => {
+    if (!screen) return;
+    const request = ++switchRequest;
     clearTimeout(swapTimer);
-    showcasePhone?.classList.add('is-changing');
-    swapTimer = setTimeout(() => {
-      screen.src = `assets/${tab.dataset.screen}`;
-      screen.alt = `财小通${tab.dataset.label}预览，数据均为虚构`;
-      requestAnimationFrame(() => showcasePhone?.classList.remove('is-changing'));
-    }, prefersReducedMotion ? 0 : 180);
+    showcasePhone?.classList.remove('is-changing');
+    clearShowcaseLoading();
+    if (tab.classList.contains('is-active')) return;
+
+    tab.classList.add('is-loading');
+    showcasePhone?.setAttribute('aria-busy', 'true');
+    if (showcaseStatus) showcaseStatus.textContent = `正在加载${tab.dataset.label}…`;
+
+    try {
+      // Keep the visible image and selected tab together until decoding finishes.
+      const image = await loadShowcaseImage(tab);
+      if (request !== switchRequest) return;
+      showcasePhone?.classList.add('is-changing');
+      swapTimer = setTimeout(() => {
+        if (request !== switchRequest) return;
+        // Insert the decoded element itself so a new src cannot show the old frame.
+        screen.replaceWith(image);
+        screen = image;
+        tabs.forEach((item) => {
+          const isCurrent = item === tab;
+          item.classList.toggle('is-active', isCurrent);
+          item.setAttribute('aria-selected', String(isCurrent));
+        });
+        clearShowcaseLoading();
+        requestAnimationFrame(() => {
+          if (request === switchRequest) showcasePhone?.classList.remove('is-changing');
+        });
+      }, prefersReducedMotion ? 0 : 180);
+    } catch {
+      if (request !== switchRequest) return;
+      clearShowcaseLoading();
+      if (showcaseStatus) showcaseStatus.textContent = '图片加载失败，请点击页面标签重试。';
+    }
   });
 });
+
+if (screen && 'IntersectionObserver' in window) {
+  const preloadObserver = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    tabs.forEach((tab) => loadShowcaseImage(tab).catch(() => {}));
+    preloadObserver.disconnect();
+  }, { rootMargin: '350px' });
+  preloadObserver.observe(document.querySelector('#experience'));
+}

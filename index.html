@@ -19,6 +19,7 @@
   </div>
 
   <header class="site-header" data-header>
+    <div class="nav-backdrop" data-nav-backdrop aria-hidden="true"></div>
     <nav class="nav shell" aria-label="主导航">
       <a class="brand" href="#top" aria-label="财小通首页">
         <img src="assets/logo.svg" width="38" height="38" alt="">
@@ -35,7 +36,10 @@
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 16h12"/></svg>
       </a>
       <button class="nav__toggle" type="button" aria-label="打开导航" aria-expanded="false" aria-controls="nav-links" data-nav-toggle>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 16h14"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path class="nav__toggle-line nav__toggle-line--top" d="M5 8h14"/>
+          <path class="nav__toggle-line nav__toggle-line--bottom" d="M5 16h14"/>
+        </svg>
       </button>
     </nav>
   </header>
@@ -155,6 +159,7 @@
             <button class="showcase-tab" type="button" role="tab" aria-selected="false" data-screen="bill-light.png" data-label="账单页面">账单</button>
             <button class="showcase-tab" type="button" role="tab" aria-selected="false" data-screen="mine-light.png" data-label="我的页面">我的</button>
           </div>
+          <p class="showcase-status" role="status" aria-live="polite" aria-atomic="true" data-showcase-status></p>
         </div>
         <div class="showcase__stage reveal reveal--delay-1">
           <span class="stage-orbit stage-orbit--one" aria-hidden="true"></span>
