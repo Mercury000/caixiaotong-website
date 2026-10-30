@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-label="财小通">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="0" x2="98" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#438AFF"/>
+      <stop offset="1" stop-color="#2559DA"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#1243A8" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <rect width="108" height="108" rx="28" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <path fill="#194EC7" d="M36 41h42a6 6 0 0 1 6 6v27a6 6 0 0 1-6 6H36a6 6 0 0 1-6-6V47a6 6 0 0 1 6-6Z"/>
+    <path fill="#fff" d="M32 33h44a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H32a6 6 0 0 1-6-6V39a6 6 0 0 1 6-6Z"/>
+    <path fill="#DFF2FF" d="M26 43h56v8H26z"/>
+    <path fill="#326CE5" d="M36 57h3v8h-3zm6 0h2v8h-2zm5 0h3v8h-3zm6 0h2v8h-2z"/>
+    <circle cx="67" cy="61" r="5" fill="#25B6B0"/>
+  </g>
+</svg>
