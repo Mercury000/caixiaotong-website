@@ -6,6 +6,32 @@ const updateHeader = () => header?.classList.toggle('is-scrolled', window.scroll
 updateHeader();
 window.addEventListener('scroll', updateHeader, { passive: true });
 
+const navToggle = document.querySelector('[data-nav-toggle]');
+const navLinks = document.querySelector('.nav__links');
+const mobileNavigation = window.matchMedia('(max-width: 760px)');
+const setNavigationOpen = (open) => {
+  header?.classList.toggle('is-menu-open', open);
+  navToggle?.setAttribute('aria-expanded', String(open));
+  navToggle?.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
+};
+
+navToggle?.addEventListener('click', () => {
+  setNavigationOpen(navToggle.getAttribute('aria-expanded') !== 'true');
+});
+navLinks?.addEventListener('click', (event) => {
+  if (event.target.closest('a')) setNavigationOpen(false);
+});
+document.addEventListener('click', (event) => {
+  if (!header?.contains(event.target)) setNavigationOpen(false);
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && navToggle?.getAttribute('aria-expanded') === 'true') {
+    setNavigationOpen(false);
+    navToggle.focus();
+  }
+});
+mobileNavigation.addEventListener('change', () => setNavigationOpen(false));
+
 if ('IntersectionObserver' in window && !prefersReducedMotion) {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -22,6 +48,7 @@ if ('IntersectionObserver' in window && !prefersReducedMotion) {
 const tiltStage = document.querySelector('[data-tilt]');
 if (tiltStage && !prefersReducedMotion && window.matchMedia('(pointer: fine)').matches) {
   tiltStage.addEventListener('pointermove', (event) => {
+    if (event.pointerType !== 'mouse' || window.innerWidth <= 980) return;
     const bounds = tiltStage.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width - 0.5;
     const y = (event.clientY - bounds.top) / bounds.height - 0.5;
