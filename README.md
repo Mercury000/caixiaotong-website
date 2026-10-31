@@ -3,7 +3,11 @@
 纯静态实现，无构建依赖。直接打开 `index.html`，或在仓库根目录运行：
 
 ```powershell
-python -m http.server 4173 --directory website
+python -m http.server 4173 --bind 127.0.0.1
 ```
 
-随后访问 `http://127.0.0.1:4173`。页面截图来自 `docs/images/` 中的虚构预览数据。
+随后访问 `http://127.0.0.1:4173`。
+
+页面截图于 2026-10-31 从财小通当前代码的原生 Compose preview 重新渲染，账号、金额及付款码均为虚构数据。`assets/` 保留 PNG 原图，网页使用 480px / 960px 两档无损 WebP，并按需加载。
+
+当前仅作页面预览。下载区保留私有 GitHub 仓库的发布页链接；公开上线前替换为实际可访问的正式安装包地址，并同步版本信息。

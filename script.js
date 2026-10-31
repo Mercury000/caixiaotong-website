@@ -45,6 +45,16 @@ document.addEventListener('keydown', (event) => {
 });
 mobileNavigation.addEventListener('change', () => setNavigationOpen(false));
 
+const featureCards = document.querySelectorAll('.feature-card');
+if ('IntersectionObserver' in window && !prefersReducedMotion) {
+  const featureObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => entry.target.classList.toggle('is-animated', entry.isIntersecting));
+  }, { threshold: 0.15 });
+  featureCards.forEach((card) => featureObserver.observe(card));
+} else if (!prefersReducedMotion) {
+  featureCards.forEach((card) => card.classList.add('is-animated'));
+}
+
 if ('IntersectionObserver' in window && !prefersReducedMotion) {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -53,6 +63,7 @@ if ('IntersectionObserver' in window && !prefersReducedMotion) {
       observer.unobserve(entry.target);
     });
   }, { threshold: 0.12, rootMargin: '0px 0px -35px' });
+  document.documentElement.classList.add('motion-ready');
   reveals.forEach((element) => observer.observe(element));
 } else {
   reveals.forEach((element) => element.classList.add('is-visible'));
@@ -76,6 +87,10 @@ const tabs = document.querySelectorAll('.showcase-tab');
 let screen = document.querySelector('[data-showcase-image]');
 const showcasePhone = document.querySelector('.phone--showcase');
 const showcaseStatus = document.querySelector('[data-showcase-status]');
+const screenPanel = document.querySelector('#screen-panel');
+const screenTitle = document.querySelector('[data-screen-title]');
+const screenDescription = document.querySelector('[data-screen-description]');
+const screenPoints = document.querySelector('[data-screen-points]');
 const screenCache = new Map();
 let switchRequest = 0;
 let swapTimer;
@@ -86,8 +101,12 @@ const loadShowcaseImage = (tab) => {
     const image = new Image();
     image.dataset.showcaseImage = '';
     image.decoding = 'async';
-    image.alt = `财小通${tab.dataset.label}预览，数据均为虚构`;
-    image.src = `assets/${file}`;
+    image.width = 480;
+    image.height = 1041;
+    image.sizes = '(max-width: 760px) 250px, 285px';
+    image.srcset = `assets/${file}.webp 480w, assets/${file}@2x.webp 960w`;
+    image.alt = `财小通${tab.dataset.label}`;
+    image.src = `assets/${file}.webp`;
     const ready = image.decode().then(() => image).catch((error) => {
       screenCache.delete(file);
       throw error;
@@ -100,6 +119,19 @@ const loadShowcaseImage = (tab) => {
 const clearShowcaseLoading = () => {
   showcasePhone?.setAttribute('aria-busy', 'false');
   if (showcaseStatus) showcaseStatus.textContent = '';
+};
+
+const updateScreenDescription = (tab) => {
+  screenPanel?.setAttribute('aria-labelledby', tab.id);
+  if (screenTitle) screenTitle.textContent = tab.dataset.title;
+  if (screenDescription) screenDescription.textContent = tab.dataset.description;
+  if (screenPoints) {
+    screenPoints.replaceChildren(...tab.dataset.points.split('|').map((point) => {
+      const item = document.createElement('li');
+      item.textContent = point;
+      return item;
+    }));
+  }
 };
 
 tabs.forEach((tab) => {
@@ -127,7 +159,9 @@ tabs.forEach((tab) => {
           const isCurrent = item === tab;
           item.classList.toggle('is-active', isCurrent);
           item.setAttribute('aria-selected', String(isCurrent));
+          item.tabIndex = isCurrent ? 0 : -1;
         });
+        updateScreenDescription(tab);
         clearShowcaseLoading();
         requestAnimationFrame(() => {
           if (request === switchRequest) showcasePhone?.classList.remove('is-changing');
@@ -138,6 +172,18 @@ tabs.forEach((tab) => {
       clearShowcaseLoading();
       if (showcaseStatus) showcaseStatus.textContent = '图片加载失败，请点击页面标签重试。';
     }
+  });
+  tab.addEventListener('keydown', (event) => {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    const items = [...tabs];
+    const index = items.indexOf(tab);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : -1) + items.length) % items.length;
+    items.forEach((item, position) => { item.tabIndex = position === next ? 0 : -1; });
+    items[next].focus({ preventScroll: true });
+    items[next].click();
   });
 });
 
