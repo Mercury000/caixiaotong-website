@@ -221,6 +221,7 @@ html.is-promo-open, html.is-promo-open body { overflow: hidden; }
 .showcase { overflow: hidden; padding: 72px 0; background: #eaf2ff; }
 .showcase__inner { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; min-height: 620px; }
 .showcase__copy { position: relative; z-index: 2; }
+.showcase__heading, .showcase-tabs, .showcase-description { position: relative; z-index: 2; }
 .showcase__copy p { max-width: 450px; margin: 28px 0 35px; color: #667084; font-size: 17px; line-height: 1.8; }
 .showcase-tabs { width: fit-content; display: flex; gap: 5px; padding: 6px; border-radius: 19px; background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,.8); }
 .showcase-tab { position: relative; min-width: 64px; height: 41px; padding: 0 14px; border: 0; border-radius: 14px; background: transparent; color: #6e7684; font: inherit; font-size: 13px; cursor: pointer; transition: background .35s var(--ease), color .35s, box-shadow .35s, transform .25s var(--spring); }
@@ -249,8 +250,9 @@ html.is-promo-open, html.is-promo-open body { overflow: hidden; }
 .theme-points { margin-top: 22px; }
 .theme-controls { position: absolute; right: 18px; bottom: 18px; z-index: 4; }
 [hidden] { display: none !important; }
-.showcase__stage { position: relative; height: 620px; display: grid; place-items: center; }
+.showcase__stage { position: relative; z-index: 0; height: 620px; display: grid; place-items: center; }
 .showcase__stage::before { content: ""; position: absolute; width: 540px; height: 540px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #cddfff 55%, #b5d1ff 100%); box-shadow: 0 55px 100px rgba(47,94,169,.16); }
+.halo, .float-chip, .showcase__stage::before, .stage-orbit { pointer-events: none; }
 .phone--showcase { z-index: 3; width: 268px; height: auto; transform: rotate(-3deg); }
 .stage-orbit { position: absolute; z-index: 1; border: 1px solid rgba(44,102,201,.11); border-radius: 50%; }
 .stage-orbit--one { width: 650px; height: 320px; transform: rotate(28deg); }
@@ -501,7 +503,7 @@ html.is-promo-open, html.is-promo-open body { overflow: hidden; }
   .hero__visual { padding: 8px 0 16px; }
   .phone--hero { width: clamp(150px, calc((100svh - 490px) / 2.17), 210px); }
   .showcase { min-height: calc(100svh - 84px); padding-block: 24px 20px; }
-  .showcase__inner { height: calc(100svh - 128px); grid-template-rows: auto auto minmax(230px, 1fr) auto; gap: 8px; }
+  .showcase__inner { min-height: calc(100svh - 128px); grid-template-rows: auto auto minmax(230px, 1fr) auto; gap: 8px; }
   .showcase__heading { margin-bottom: 0; }
   .showcase__stage { height: 100%; min-height: 230px; }
   .phone--showcase { width: clamp(102px, calc((100svh - 500px) / 2.17), 180px); }
@@ -533,10 +535,12 @@ html.is-promo-open, html.is-promo-open body { overflow: hidden; }
   .showcase-actions { gap: 6px; }
   .showcase-actions .screen-points { flex-wrap: wrap; gap: 5px; }
   .showcase-actions .screen-point { font-size: 11px; padding-inline: 6px; }
-  .detail-row--theme .detail-row__visual--theme { height: calc(100svh - 130px); min-height: 210px; }
-  .detail-row--theme .theme-preview { width: min(140px, calc((100svh - 165px) / 2.17)); }
-  .detail-row--theme .theme-preview--light { width: min(120px, calc((100svh - 180px) / 2.17)); transform: translate(-170px, -8px) rotate(-6deg); }
-  .detail-row--theme .theme-preview--dark { width: min(120px, calc((100svh - 180px) / 2.17)); transform: translate(170px, -8px) rotate(6deg); }
+  .detail-row--theme { gap: 12px; }
+  .detail-row--theme .detail-row__visual--theme { height: calc(100svh - 170px); min-height: 170px; }
+  .detail-row--theme .theme-preview { width: clamp(80px, calc((100svh - 185px) / 2.17), 140px); }
+  .detail-row--theme .theme-preview--settings { transform: none; }
+  .detail-row--theme .theme-preview--light { width: clamp(70px, calc((100svh - 200px) / 2.17), 120px); transform: translate(-170px, -8px) rotate(-6deg); }
+  .detail-row--theme .theme-preview--dark { width: clamp(70px, calc((100svh - 200px) / 2.17), 120px); transform: translate(170px, -8px) rotate(6deg); }
 }
 
 @media (min-width: 1101px) and (min-height: 700px) and (hover: hover) and (pointer: fine) {

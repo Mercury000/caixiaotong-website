@@ -30,7 +30,9 @@
       const start = Math.max(0, Math.min(limit, top - inset));
       const room = innerHeight - (top - start);
       // Read oversized content before leaving its module.
-      const end = section.offsetHeight <= room + 4 ? start : Math.min(limit, top + section.offsetHeight - innerHeight + 16);
+      const content = section.querySelector('.showcase__inner, .detail-row__visual--theme') ?? section;
+      const bottom = layoutTop(content) + content.offsetHeight;
+      const end = section.offsetHeight <= room + 4 ? start : Math.min(limit, bottom - innerHeight + 16);
       return { start, end: Math.max(start, end) };
     }).filter((position, index, all) => index === 0 || position.start > all[index - 1].start + 1);
   };
