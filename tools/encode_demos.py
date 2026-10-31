@@ -18,7 +18,7 @@ SCENES = {
        for prefix, suffix in [("settings", ""), ("effect", "-light"), ("effect", "-dark")]},
 }
 
-THEME_ENDS = {"floating": 35, "style": 55, "blur": 60, "back": 149}
+THEME_RANGES = {"floating": (30, 69), "style": (0, 55), "blur": (0, 60), "back": (0, 149)}
 
 
 def main():
@@ -66,8 +66,9 @@ def main():
             raise RuntimeError(f"Incomplete native capture: {scene}")
         theme = scene.startswith(("settings-", "effect-"))
         if theme:
-            # Stop at the demonstrated preference, then hold it instead of toggling back.
-            frames = frames[:THEME_ENDS[scene.split("-")[1]] + 1]
+            # Floating demonstrates enabling the bar; every scene holds its final result.
+            start, end = THEME_RANGES[scene.split("-")[1]]
+            frames = frames[start:end + 1]
         # Extend the fully opened interface so its details remain readable.
         hold_at = 93 if scene == "mine-theme" else count - 21
         movie = args.output / f"{scene}.mp4"
