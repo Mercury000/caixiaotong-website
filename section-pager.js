@@ -15,6 +15,7 @@
     moving = false; lastWheel = 0; wheelDistance = 0; gestureUsed = false; touchGesture = null;
   };
   const enabled = () => (desktop.matches || touch.matches) && !reducedMotion.matches &&
+    !document.querySelector('dialog[open]') &&
     (window.visualViewport?.scale ?? 1) <= 1.02;
   const layoutTop = (element) => {
     let top = 0;

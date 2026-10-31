@@ -13,7 +13,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 100px; overflow-x: clip; }
+html { scroll-behavior: smooth; scroll-padding-top: 100px; overflow-x: clip; scrollbar-gutter: stable; }
 body {
   margin: 0;
   min-width: 320px;
@@ -114,8 +114,17 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .hero h1 span { background: linear-gradient(105deg, #2368ee 12%, #4e9cff 55%, #42bdcf); background-clip: text; -webkit-background-clip: text; color: transparent; }
 .hero__lead { max-width: 490px; margin: 0; color: var(--muted); font-size: 19px; line-height: 1.7; letter-spacing: -.012em; }
 .hero__actions { display: flex; gap: 12px; margin-top: 35px; }
+.hero__actions button { font-family: inherit; cursor: pointer; }
 .hero__meta { margin: 18px 0 0 4px; color: #747780; font-size: 12px; }
 .hero__meta span { margin: 0 7px; color: #a2a5ad; }
+
+html.is-promo-open, html.is-promo-open body { overflow: hidden; }
+.promo-dialog { width: min(1080px, calc(100% - 32px), calc((100dvh - 120px) * 16 / 9)); max-width: none; max-height: calc(100dvh - 120px); margin: auto; padding: 0; border: 0; border-radius: 20px; background: #111114; color: #fff; overflow: visible; box-shadow: 0 30px 100px #0005; }
+.promo-dialog::backdrop { background: #101522cc; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.promo-dialog__video { display: block; width: 100%; height: auto; max-height: calc(100dvh - 120px); aspect-ratio: 16 / 9; object-fit: contain; border-radius: inherit; background: #111114; }
+.promo-dialog__close { position: absolute; top: -54px; right: 0; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #ffffff55; border-radius: 50%; background: #ffffff18; color: #fff; cursor: pointer; }
+.promo-dialog__close:hover { background: #ffffff30; }
+.promo-dialog__close svg { width: 22px; height: 22px; }
 
 .hero__visual { position: relative; height: 580px; display: grid; place-items: center; perspective: 1200px; }
 .halo { position: absolute; width: 590px; height: 590px; border-radius: 50%; background: radial-gradient(circle at 43% 42%, rgba(255,255,255,.95) 0 16%, rgba(111,169,255,.35) 46%, rgba(101,211,221,.12) 62%, transparent 72%); filter: blur(2px); animation: halo-breathe 6s ease-in-out infinite; }

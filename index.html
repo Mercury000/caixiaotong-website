@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="script.js" defer></script>
   <script src="demo-player.js" defer></script>
+  <script src="promo-player.js" defer></script>
   <script src="section-pager.js" defer></script>
 </head>
 <body>
@@ -59,7 +60,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></svg>
             获取财小通
           </a>
-          <a class="button button--ghost" href="#experience">看看界面</a>
+          <button class="button button--ghost" type="button" data-promo-open aria-haspopup="dialog" aria-controls="promo-dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7z"/></svg>
+            观看介绍
+          </button>
         </div>
         <p class="hero__meta reveal reveal--delay-4">Android 14+ <span>·</span> v1.1.0 <span>·</span> 非官方项目</p>
       </div>
@@ -305,5 +309,11 @@
       <a href="https://github.com/Mercury000/HUEL-yktwx/blob/main/LICENSE">GPL-3.0</a>
     </div>
   </footer>
+  <dialog class="promo-dialog" id="promo-dialog" aria-label="财小通介绍视频">
+    <button class="promo-dialog__close" type="button" data-promo-close aria-label="关闭视频" autofocus>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <video class="promo-dialog__video" data-promo-video data-src="assets/promo/intro.mp4" data-poster="assets/promo/intro.webp" controls playsinline preload="none" width="1920" height="1080" aria-label="财小通推广介绍"></video>
+  </dialog>
 </body>
 </html>

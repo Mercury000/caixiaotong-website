@@ -57,7 +57,7 @@
     const viewportHeight = window.visualViewport?.height ?? innerHeight;
     const headerBottom = (header?.querySelector('.nav')?.getBoundingClientRect().bottom ?? 0) + 8;
     const rects = player.elements.map((el) => el?.getBoundingClientRect()).filter(Boolean);
-    return !document.hidden && !header?.classList.contains('is-menu-open') &&
+    return !document.hidden && !document.querySelector('dialog[open]') && !header?.classList.contains('is-menu-open') &&
       Math.min(...rects.map((r) => r.top)) >= headerBottom - 2 &&
       Math.max(...rects.map((r) => r.bottom)) <= viewportHeight - 8;
   };
