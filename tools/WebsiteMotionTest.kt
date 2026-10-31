@@ -29,11 +29,12 @@ class WebsiteMotionTest {
     private lateinit var settings: ThemeSettings
     private var sequence = 0
     private lateinit var scene: File
+    private val captureThemeMode get() = if (System.getenv("WEBSITE_COLOR_MODE") == "dark") 2 else 1
 
-    private fun start(tab: String) {
+    private fun start(tab: String, mode: Int = captureThemeMode) {
         val app = compose.activity.application
         app.getSharedPreferences("ui_settings", Context.MODE_PRIVATE).edit().clear().commit()
-        settings = ThemeSettings(app).apply { setTheme(1); setFloating(true); setFloatingStyle(1); setBlurBottom(true) }
+        settings = ThemeSettings(app).apply { setTheme(mode); setFloating(true); setFloatingStyle(1); setBlurBottom(true) }
         val payment = PaymentViewModel(app).apply { initialize(true) }
         val bills = BillViewModel(app).apply { initialize(true) }
         compose.setContent {
@@ -117,6 +118,16 @@ class WebsiteMotionTest {
         back(); finish()
     }
 
+    @Test fun paymentPrivacyLight() = paymentPrivacy(1)
+    @Test fun paymentPrivacyDark() = paymentPrivacy(2)
+    private fun paymentPrivacy(mode: Int) {
+        start("付款", mode)
+        begin("payment-privacy-${if (mode == 1) "light" else "dark"}")
+        compose.onNodeWithContentDescription("显示完整付款码号").performClick(); frames(32)
+        compose.onNodeWithContentDescription("隐藏完整付款码号").performClick(); frames(28)
+        finish()
+    }
+
     @Test fun hallScenes() {
         start("大厅")
         begin("hall-electricity")
@@ -171,10 +182,10 @@ class WebsiteMotionTest {
         click("应用设置"); frames(24)
         click("主题"); frames(20)
         dropdown("主题"); frames(16)
-        click("深色"); frames(24)
+        compose.onNode(hasText("深色") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)).performClick(); frames(24)
         back(); frames(16)
         back(); frames(16)
-        compose.runOnIdle { settings.setTheme(1) }; finish()
+        compose.runOnIdle { settings.setTheme(captureThemeMode) }; finish()
     }
 
     @Test fun continuousTour() {

@@ -1,7 +1,9 @@
 param(
     [Parameter(Mandatory = $true)][string]$AndroidRepo,
     [string]$Frames,
-    [string]$BuildDirectory
+    [string]$BuildDirectory,
+    [ValidateSet('light', 'dark')][string]$Mode = 'light',
+    [switch]$ThemeOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,11 +45,20 @@ internal object PreviewNotes {
 [IO.File]::WriteAllText((Join-Path $buildRoot 'app\src\uiPreview\kotlin\com\mercury\yktwx\preview\PreviewNotes.kt'), $notes, [Text.UTF8Encoding]::new($false))
 
 $previousFrames = $env:WEBSITE_MOTION_FRAMES
+$previousMode = $env:WEBSITE_COLOR_MODE
 try {
     $env:WEBSITE_MOTION_FRAMES = $frameRoot
-    & (Join-Path $buildRoot 'gradlew.bat') -p $buildRoot :app:testDebugUnitTest --tests 'com.mercury.yktwx.WebsiteMotionTest.paymentScenes' --tests 'com.mercury.yktwx.WebsiteMotionTest.paymentRecharge' --tests 'com.mercury.yktwx.WebsiteMotionTest.hallScenes' --tests 'com.mercury.yktwx.WebsiteMotionTest.hallRooms' --tests 'com.mercury.yktwx.WebsiteMotionTest.billScenes' --tests 'com.mercury.yktwx.WebsiteMotionTest.mineScenes' --tests 'com.mercury.yktwx.WebsiteMotionTest.mineTheme' --tests 'com.mercury.yktwx.WebsiteThemeTest.settingsControls' --tests 'com.mercury.yktwx.WebsiteThemeTest.lightEffects' --tests 'com.mercury.yktwx.WebsiteThemeTest.darkEffects' --tests 'com.mercury.yktwx.WebsiteThemeTest.lightBack' --tests 'com.mercury.yktwx.WebsiteThemeTest.darkBack' --no-configuration-cache
+    $env:WEBSITE_COLOR_MODE = $Mode
+    $captureTests = if ($ThemeOnly) { @() } else { @('paymentScenes', 'paymentRecharge', 'hallScenes', 'hallRooms', 'billScenes', 'mineScenes', 'mineTheme') }
+    $captureTests += if ($Mode -eq 'dark') { 'paymentPrivacyDark' } else { 'paymentPrivacyLight' }
+    $captureArgs = @(':app:testDebugUnitTest')
+    foreach ($captureTest in $captureTests) { $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteMotionTest.$captureTest") }
+    $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteThemeTest.${Mode}Variants")
+    $captureArgs += '--no-configuration-cache'
+    & (Join-Path $buildRoot 'gradlew.bat') -p $buildRoot @captureArgs
     if ($LASTEXITCODE -ne 0) { throw "Native capture failed. Inspect the reports in $buildRoot." }
 } finally {
     $env:WEBSITE_MOTION_FRAMES = $previousFrames
+    $env:WEBSITE_COLOR_MODE = $previousMode
 }
 Write-Output "Native PNG frames: $frameRoot"

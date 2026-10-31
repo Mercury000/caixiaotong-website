@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image
 
 SCENES = {
-    "payment-qr": 62, "payment-barcode": 62, "payment-recharge": 90,
+    "payment-qr": 62, "payment-barcode": 62, "payment-recharge": 90, "payment-privacy": 90,
     "hall-electricity": 78, "hall-network": 66, "hall-rooms": 82,
     "bill-stats": 82, "bill-filter": 66, "bill-date": 66,
     "mine-profile": 66, "mine-account": 66, "mine-theme": 146,
@@ -18,7 +18,61 @@ SCENES = {
        for prefix, suffix in [("settings", ""), ("effect", "-light"), ("effect", "-dark")]},
 }
 
-THEME_RANGES = {"floating": (30, 69), "style": (0, 55), "blur": (0, 60), "back": (0, 149)}
+THEME_RANGES = {"floating": (30, 69), "style": (0, 55), "blur": (0, 65), "back": (0, 149)}
+THEME_VARIANTS = [f"{kind}-{blur}{top}" for kind in ("docked", "floating", "ios")
+                  for blur in ("plain", "blur") for top in ("", "-top-blur")]
+
+
+def encoder(ffmpeg, movie):
+    return subprocess.Popen([ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                             "-f", "image2pipe", "-framerate", "20", "-vcodec", "png", "-i", "pipe:0",
+                             "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
+                             "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(movie)], stdin=subprocess.PIPE)
+
+
+def native_frames(root, scene, bounds):
+    frames = [root / scene / f"{index:04d}.png" for index in range(bounds[0], bounds[1] + 1)]
+    if not all(frame.is_file() for frame in frames):
+        raise RuntimeError(f"Incomplete native capture: {scene}")
+    return frames
+
+
+def encode_theme(args):
+    report = []
+    for variant in THEME_VARIANTS:
+        if args.top_only and not variant.endswith("-top-blur"):
+            continue
+        for kind, count in [("bar", 64), ("back", 70)]:
+            scene = f"theme-{kind}-{variant}-{args.mode}"
+            frames = native_frames(args.frames, scene, (0, count - 1))
+            movie = args.output / f"{scene}.mp4"
+            process = encoder(args.ffmpeg, movie)
+            try:
+                for frame in frames:
+                    process.stdin.write(frame.read_bytes())
+                process.stdin.write(frames[-1].read_bytes() * 12)
+            finally:
+                process.stdin.close()
+            if process.wait() != 0:
+                raise RuntimeError(f"Encoding failed: {scene}")
+            # Each combination has a native base image available without its movie.
+            if kind == "bar":
+                with Image.open(frames[0]) as image:
+                    image.save(args.output / f"{scene}.webp", lossless=True, method=6)
+            report.append({"scene": scene, "duration": (count + 12) / 20,
+                           "bytes": movie.stat().st_size})
+    return report
+
+
+def export_pages(args):
+    for page, scene in {"payment": "payment-qr", "hall": "hall-rooms", "bill": "bill-filter", "mine": "mine-account"}.items():
+        with Image.open(args.frames / scene / "0000.png") as image:
+            target = args.output.parent / f"{page}-{args.mode}"
+            image.save(target.with_suffix(".png"))
+            for width, suffix in [(480, ""), (960, "@2x")]:
+                height = round(width * 891 / 411)
+                image.resize((width, height), Image.Resampling.LANCZOS).save(
+                    target.parent / f"{target.name}{suffix}.webp", lossless=True, method=6)
 
 
 def main():
@@ -27,13 +81,21 @@ def main():
     parser.add_argument("--ffmpeg", default=shutil.which("ffmpeg"))
     parser.add_argument("--scene", choices=SCENES, action="append")
     parser.add_argument("--tour", action="store_true", help="Encode the continuous native tour and its chapters.")
-    parser.add_argument("--theme-only", action="store_true", help="Encode only the three-screen theme scenes.")
+    parser.add_argument("--theme-only", action="store_true", help="Encode composable bottom-bar and return effects, without settings footage.")
+    parser.add_argument("--top-only", action="store_true", help="With --theme-only, encode only the added top-bar blur combinations.")
     parser.add_argument("--showcase-only", action="store_true", help="Encode short, manually selected page demonstrations.")
+    parser.add_argument("--mode", choices=("light", "dark"), default="light")
+    parser.add_argument("--pages", action="store_true", help="Export the four static pages for this color mode.")
     parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[1] / "assets" / "demos")
     args = parser.parse_args()
     if not args.ffmpeg:
         parser.error("Pass --ffmpeg with the path to ffmpeg.")
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.pages:
+        export_pages(args)
+    if args.theme_only:
+        print(json.dumps(encode_theme(args), ensure_ascii=False, indent=2))
+        return
     if args.tour:
         source = args.frames / "tour"
         metadata = json.loads((source / "chapters.json").read_text(encoding="utf-8"))
@@ -61,7 +123,8 @@ def main():
                            and (not args.showcase_only or not name.startswith(("settings-", "effect-", "payment-qr", "payment-barcode")))]
     for scene in scenes:
         count = SCENES[scene]
-        frames = [args.frames / scene / f"{index:04d}.png" for index in range(count)]
+        source_scene = f"{scene}-{args.mode}" if scene == "payment-privacy" else scene
+        frames = [args.frames / source_scene / f"{index:04d}.png" for index in range(count)]
         if not all(frame.is_file() for frame in frames):
             raise RuntimeError(f"Incomplete native capture: {scene}")
         theme = scene.startswith(("settings-", "effect-"))
@@ -71,7 +134,8 @@ def main():
             frames = frames[start:end + 1]
         # Extend the fully opened interface so its details remain readable.
         hold_at = 93 if scene == "mine-theme" else count - 21
-        movie = args.output / f"{scene}.mp4"
+        asset = f"{scene}-dark" if args.mode == "dark" else scene
+        movie = args.output / f"{asset}.mp4"
         command = [args.ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
                    "-f", "image2pipe", "-framerate", "20", "-vcodec", "png", "-i", "pipe:0",
                    "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
@@ -88,14 +152,15 @@ def main():
         if process.wait() != 0:
             raise RuntimeError(f"Encoding failed: {scene}")
         # A settled native image is also available before video playback.
-        poster = frames[-1] if theme else frames[93 if scene == "mine-theme" else min(37, hold_at)]
+        poster = frames[-1] if theme or scene == "payment-privacy" else frames[93 if scene == "mine-theme" else min(37, hold_at)]
         with Image.open(poster) as image:
-            image.save(args.output / f"{scene}.webp", lossless=True, method=6)
+            image.save(args.output / f"{asset}.webp", lossless=True, method=6)
         duration = (len(frames) + 20) / 20
         report.append({"scene": scene, "duration": duration, "bytes": movie.stat().st_size})
     if args.showcase_only:
         # Dual codes are a still image. The enlargement action shows both native sheets.
-        movie = args.output / "payment-enlarge.mp4"
+        asset = "payment-enlarge-dark" if args.mode == "dark" else "payment-enlarge"
+        movie = args.output / f"{asset}.mp4"
         process = subprocess.Popen([args.ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
                                     "-f", "image2pipe", "-framerate", "20", "-vcodec", "png", "-i", "pipe:0",
                                     "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
@@ -110,7 +175,7 @@ def main():
         if process.wait() != 0:
             raise RuntimeError("Encoding failed: payment-enlarge")
         with Image.open(args.frames / "payment-qr" / "0000.png") as image:
-            image.save(args.output / "payment-enlarge.webp", lossless=True, method=6)
+            image.save(args.output / f"{asset}.webp", lossless=True, method=6)
         report.append({"scene": "payment-enlarge", "duration": 6.2, "bytes": movie.stat().st_size})
     print(json.dumps(report, ensure_ascii=False, indent=2))
 

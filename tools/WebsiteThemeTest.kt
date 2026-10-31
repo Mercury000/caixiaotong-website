@@ -31,7 +31,7 @@ import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
 
-/** Real settings controls stay light; separate app renders show each preference's effect. */
+/** Real settings controls and app renders follow the selected website color mode. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "zh-rCN-w411dp-h891dp-hdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -47,7 +47,7 @@ class WebsiteThemeTest {
         app.getSharedPreferences("ui_settings", Context.MODE_PRIVATE).edit().clear().commit()
         settings = ThemeSettings(app).apply { setTheme(mode); setFloating(true); setFloatingStyle(if (controls) 0 else 1); setPredictive(true) }
         if (controls) compose.setContent {
-            AppTheme(ColorSchemeMode.Light) {
+            AppTheme(if (System.getenv("WEBSITE_COLOR_MODE") == "dark") ColorSchemeMode.Dark else ColorSchemeMode.Light) {
                 Scaffold(topBar = { TopAppBar(title = "主题", largeTitle = "主题", color = Color.Transparent) }) { padding ->
                     ThemeSettingsPage(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.surface), padding,
                         themeMode = settings.themeMode, onThemeModeChange = settings::setTheme,
@@ -96,7 +96,7 @@ class WebsiteThemeTest {
     private fun finish() { frames(20); settle(); println("CAPTURED ${scene.name}: $sequence") }
 
     private fun dragContent(up: Boolean, count: Int) {
-        val list = compose.onAllNodes(hasScrollAction())[0]
+        val list = visibleContent()
         val bounds = list.fetchSemanticsNode().boundsInRoot
         val start = androidx.compose.ui.geometry.Offset(bounds.width / 2, bounds.height * if (up) .75f else .25f)
         list.performTouchInput { down(start) }
@@ -107,8 +107,12 @@ class WebsiteThemeTest {
         list.performTouchInput { up() }
     }
 
+    private fun visibleContent() = compose.onNode(hasScrollAction() and
+        SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange) and
+        SemanticsMatcher("Visible vertical content") { it.boundsInRoot.left >= 0f && it.boundsInRoot.right > 0f })
+
     @Test fun settingsControls() {
-        setup(controls = true)
+        setup(mode = if (System.getenv("WEBSITE_COLOR_MODE") == "dark") 2 else 1, controls = true)
         begin("settings-floating"); click("悬浮底栏"); frames(30); click("悬浮底栏"); frames(30); finish()
         begin("settings-style"); dropdown("悬浮底栏样式"); frames(20); option("iOS"); frames(30); dropdown("悬浮底栏样式"); frames(20); option("默认"); frames(30); finish()
         recordBlurControls()
@@ -162,5 +166,39 @@ class WebsiteThemeTest {
         repeat(16) { i -> compose.runOnIdle { dispatcher.dispatchOnBackProgressed(event((i + 1) / 16f)) }; frames(1) }
         compose.runOnIdle { dispatcher.onBackPressed() }; frames(20); frames(28, 1)
         settle(); println("CAPTURED ${scene.name}: $sequence")
+    }
+
+    @Test fun lightVariants() = variants(1)
+    @Test fun darkVariants() = variants(2)
+    @Test fun lightTopVariants() = variants(1, listOf(true))
+    @Test fun darkTopVariants() = variants(2, listOf(true))
+    private fun variants(mode: Int, topModes: List<Boolean> = listOf(false, true)) {
+        setup(mode)
+        val suffix = if (mode == 1) "light" else "dark"
+        for (kind in listOf("docked", "floating", "ios")) for (blur in listOf(false, true)) for (topBlur in topModes) {
+            val id = "$kind-${if (blur) "blur" else "plain"}${if (topBlur) "-top-blur" else ""}-$suffix"
+            compose.runOnIdle {
+                settings.setFloating(kind != "docked")
+                settings.setFloatingStyle(if (kind == "ios") 1 else 0)
+                settings.setBlurBottom(blur)
+                settings.setBlurTop(topBlur)
+                settings.setPredictive(true)
+            }
+            visibleContent().performScrollToIndex(0)
+            begin("theme-bar-$id")
+            dragContent(up = true, count = 12); frames(10)
+            dragContent(up = false, count = 12); frames(20, 16)
+            settle(); println("CAPTURED ${scene.name}: $sequence")
+
+            visibleContent().performScrollToIndex(0)
+            begin("theme-back-$id")
+            compose.onNodeWithContentDescription("个人信息").performClick(); frames(18, 18)
+            val dispatcher = compose.activity.onBackPressedDispatcher
+            fun event(progress: Float) = BackEventCompat(progress * 400f, 400f, progress, BackEventCompat.EDGE_LEFT)
+            compose.runOnIdle { dispatcher.dispatchOnBackStarted(event(0f)) }
+            repeat(14) { i -> compose.runOnIdle { dispatcher.dispatchOnBackProgressed(event((i + 1) / 14f)) }; frames(1) }
+            compose.runOnIdle { dispatcher.onBackPressed() }; frames(18, 18); frames(10, 1)
+            settle(); println("CAPTURED ${scene.name}: $sequence")
+        }
     }
 }
