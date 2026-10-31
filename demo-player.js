@@ -109,7 +109,7 @@
     const load = (source, signal) => new Promise((resolve, reject) => {
       const video = document.createElement('video');
       Object.assign(video, { muted: true, defaultMuted: true, playsInline: true, preload: 'auto',
-        disableRemotePlayback: true, width: 576, height: 1248 });
+        disableRemotePlayback: true, width: source.image.width ?? 576, height: source.image.height ?? 1248 });
       video.className = 'screen-overlay'; video.setAttribute('aria-label', source.label);
       video.poster = source.image.src; video.style.opacity = '0';
       videos.push(video);
@@ -306,62 +306,152 @@
   const themePanel = document.querySelector('.detail-row__visual--theme');
   const themePoints = document.querySelector('[data-theme-points]');
   const themeButton = document.querySelector('[data-theme-play]');
-  const themeSettings = { floating: true, style: 'default', blur: false, topBlur: false };
+  const themeRow = document.querySelector('#theme');
+  const deviceButtons = [...themeRow.querySelectorAll('[data-theme-device]')];
+  const effectOptions = themeRow.querySelector('.theme-toggles');
+  const compactOptions = matchMedia('(max-width: 760px), (orientation: landscape) and (max-height: 600px) and (max-width: 1100px)');
+  const syncOptionsLayout = () => {
+    const rail = themeRow.querySelector('[data-pad-rail]');
+    effectOptions.append(rail);
+    if (compactOptions.matches) effectOptions.setAttribute('popover', 'auto');
+    else {
+      if (effectOptions.matches(':popover-open')) effectOptions.hidePopover();
+      effectOptions.removeAttribute('popover');
+    }
+  };
+  compactOptions.addEventListener('change', syncOptionsLayout);
+  syncOptionsLayout();
+  const deviceSettings = {
+    phone: { floating: true, style: 'default', blur: false, topBlur: false },
+    tablet: { floating: false, style: 'default', blur: false, topBlur: false, expanded: true },
+  };
+  let themeDevice = 'phone';
+  let displayedDevice = 'phone';
+  const themeSettings = () => deviceSettings[themeDevice];
   const themeVariants = ['docked-plain', 'docked-blur', 'floating-plain', 'floating-blur', 'ios-plain', 'ios-blur']
     .flatMap((variant) => [variant, `${variant}-top-blur`]);
   let themeRequest = 0;
   let themePlayTarget;
   const themePlayer = makePlayer([themePanel, themePoints], themeButton,
     (value) => themePlayTarget?.style.setProperty('--progress', value));
+  effectOptions.addEventListener('toggle', (event) => {
+    if (event.newState === 'open') themePlayer.stop(true);
+    scheduleVisibility();
+  });
   themeButton.parentElement.hidden = false; themeButton.hidden = true;
-  const themeVariant = () => `${themeSettings.floating ? themeSettings.style === 'ios' ? 'ios' : 'floating' : 'docked'}-${themeSettings.blur ? 'blur' : 'plain'}${themeSettings.topBlur ? '-top-blur' : ''}`;
-  const themeImage = (variant = themeVariant()) => ({ src: `assets/demos/theme-bar-${variant}-${colorMode()}.webp`,
-    alt: `${variant.startsWith('docked') ? '贴底底栏' : variant.startsWith('ios') ? 'iOS 悬浮底栏' : '默认悬浮底栏'}${variant.split('-')[1] === 'blur' ? '，底栏模糊' : ''}${variant.endsWith('-top-blur') ? '，顶栏模糊' : ''}` });
+  const themeVariant = () => {
+    const settings = themeSettings();
+    return `${settings.floating ? settings.style === 'ios' ? 'ios' : 'floating' : 'docked'}-${settings.blur ? 'blur' : 'plain'}${settings.topBlur ? '-top-blur' : ''}`;
+  };
+  const themeImage = (variant = themeVariant(), device = themeDevice) => ({
+    src: `assets/demos/theme-${device === 'tablet' ? 'pad' : 'bar'}-${variant}${device === 'tablet' && variant.startsWith('docked') && !deviceSettings.tablet.expanded ? '-collapsed' : ''}-${colorMode()}.webp`,
+    width: device === 'tablet' ? 1280 : 576, height: device === 'tablet' ? 800 : 1248,
+    alt: `${device === 'tablet' ? '平板' : '手机'}：${variant.startsWith('docked') ? device === 'tablet' ? `${deviceSettings.tablet.expanded ? '展开' : '收起'}的侧边导航` : '贴底底栏' : variant.startsWith('ios') ? 'iOS 悬浮底栏' : '默认悬浮底栏'}${variant.split('-')[1] === 'blur' && (!variant.startsWith('docked') || device !== 'tablet') ? '，底栏模糊' : ''}${variant.endsWith('-top-blur') ? '，顶栏模糊' : ''}`,
+  });
+  const replaceThemeDevice = (loaded, device) => {
+    const current = document.querySelector('[data-theme-image]');
+    if (device === displayedDevice) { replaceStill(current, loaded, true); return; }
+    const figure = current.parentElement;
+    const frame = captureFrame(figure);
+    const cover = document.createElement('figure');
+    cover.className = 'theme-preview theme-device-cover'; cover.setAttribute('aria-hidden', 'true');
+    if (displayedDevice === 'tablet') cover.classList.add('theme-preview--tablet');
+    Object.assign(cover.style, { width: `${figure.offsetWidth}px`, height: `${figure.offsetHeight}px`,
+      left: `${figure.offsetLeft}px`, top: `${figure.offsetTop}px` });
+    if (frame && !reducedMotion.matches) {
+      cover.append(frame); themePanel.append(cover);
+    }
+    themeRow.dataset.device = device;
+    figure.classList.toggle('theme-preview--tablet', device === 'tablet');
+    replaceStill(current, loaded);
+    figure.querySelectorAll('.screen-overlay').forEach((layer) => layer.remove());
+    displayedDevice = device;
+    if (frame && !reducedMotion.matches) {
+      figure.animate([{ opacity: 0, transform: 'translateY(8px) scale(.97)' }, { opacity: 1, transform: 'none' }],
+        { duration: 360, easing: 'cubic-bezier(.16, 1, .3, 1)' });
+      cover.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-6px) scale(.98)' }],
+        { duration: 300, easing: 'ease-out' }).finished.then(() => cover.remove()).catch(() => cover.remove());
+    }
+    scheduleVisibility();
+  };
+  const showThemeOption = (button, visible) => {
+    const entering = button.hidden && visible;
+    button.hidden = !visible;
+    if (entering && !reducedMotion.matches) {
+      button.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 240, easing: 'ease-out' });
+    }
+  };
   const updateThemeOptions = () => {
+    const settings = themeSettings();
+    deviceButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeDevice === themeDevice)));
+    themeRow.querySelector('[data-theme-description]').textContent = themeDevice === 'tablet'
+      ? '大屏使用侧边导航，左上角按钮可展开或收起；也能换成居中的悬浮底栏，搭配喜欢的样式与模糊效果。'
+      : '底栏贴底或悬浮，样式与顶栏、底栏模糊自由搭配。滑动内容、返回上一页，直接看看组合后的效果。';
+    const rail = themePoints.querySelector('[data-pad-rail]');
+    showThemeOption(rail, themeDevice === 'tablet' && !settings.floating);
+    rail.setAttribute('aria-pressed', String(deviceSettings.tablet.expanded));
+    const railLabel = deviceSettings.tablet.expanded ? '收起侧栏' : '展开侧栏';
+    rail.setAttribute('aria-label', railLabel); rail.querySelector('[data-pad-rail-label]').textContent = railLabel;
     themePoints.querySelectorAll('[data-bar-position]').forEach((button) => {
-      const active = themeSettings.floating;
+      const active = settings.floating;
       button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
     });
     themePoints.querySelectorAll('[data-bar-style]').forEach((button) => {
-      const active = button.dataset.barStyle === themeSettings.style;
+      const active = button.dataset.barStyle === settings.style;
       button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
     });
-    themePoints.querySelector('[data-floating-style]').disabled = !themeSettings.floating;
+    showThemeOption(themePoints.querySelector('[data-floating-style]'), settings.floating);
     const blur = themePoints.querySelector('[data-bar-blur]');
-    blur.classList.toggle('is-active', themeSettings.blur); blur.setAttribute('aria-pressed', String(themeSettings.blur));
+    showThemeOption(blur, themeDevice !== 'tablet' || settings.floating);
+    blur.classList.toggle('is-active', settings.blur); blur.setAttribute('aria-pressed', String(settings.blur));
     const topBlur = themePoints.querySelector('[data-bar-top-blur]');
-    topBlur.classList.toggle('is-active', themeSettings.topBlur); topBlur.setAttribute('aria-pressed', String(themeSettings.topBlur));
+    topBlur.classList.toggle('is-active', settings.topBlur); topBlur.setAttribute('aria-pressed', String(settings.topBlur));
   };
-  const selectTheme = async ({ play = false, back = false, target } = {}) => {
+  const selectTheme = async ({ play = false, back = false, rail = false, target } = {}) => {
+    if (effectOptions.matches(':popover-open')) effectOptions.hidePopover();
     const token = ++themeRequest;
     themePlayer.stop(true);
     themePlayTarget = target;
     const playbackVersion = themePlayer.version;
     updateThemeOptions();
+    const device = themeDevice;
     const variant = themeVariant();
     const image = themeImage(variant);
-    const sources = [{ src: `assets/demos/theme-${back ? 'back' : 'bar'}-${variant}-${colorMode()}.mp4`,
-      label: `${image.alt}：${back ? '预测性返回' : '滚动效果'}`, image, target: () => document.querySelector('[data-theme-image]') }];
+    const sources = [{ src: rail
+      ? `assets/demos/theme-pad-rail-${themeSettings().expanded ? 'expand' : 'collapse'}${themeSettings().topBlur ? '-top-blur' : ''}-${colorMode()}.mp4`
+      : back && device === 'tablet'
+        ? `assets/demos/theme-pad-back-${variant}${variant.startsWith('docked') && !themeSettings().expanded ? '-collapsed' : ''}-${colorMode()}.mp4`
+        : `assets/demos/theme-${back ? 'back' : 'bar'}-${variant}-${colorMode()}.mp4`,
+      label: `${image.alt}：${rail ? '侧栏切换' : back ? '预测性返回' : '滚动效果'}`, image, target: () => document.querySelector('[data-theme-image]') }];
     try {
       const loaded = await loadImage(image);
       if (token !== themeRequest) return;
-      replaceStill(sources[0].target(), loaded, true);
+      if (rail && device === displayedDevice && playbackVersion === themePlayer.version) sources[0].still = loaded;
+      else replaceThemeDevice(loaded, device);
     } catch { /* Preserve the complete still while a new preview is unavailable. */ }
-    if (play && token === themeRequest && playbackVersion === themePlayer.version) themePlayer.start(sources);
+    if (play && device === displayedDevice && (device === 'phone' || rail || back) && token === themeRequest && playbackVersion === themePlayer.version) themePlayer.start(sources);
   };
+  deviceButtons.forEach((button) => button.addEventListener('click', () => {
+    if (themeDevice === button.dataset.themeDevice) return;
+    themeDevice = button.dataset.themeDevice; selectTheme();
+  }));
   themePoints.querySelectorAll('[data-bar-position]').forEach((button) => button.addEventListener('click', () => {
-    themeSettings.floating = !themeSettings.floating; selectTheme({ play: true, target: button });
+    themeSettings().floating = !themeSettings().floating; selectTheme({ play: true, target: button });
   }));
   themePoints.querySelectorAll('[data-bar-style]').forEach((button) => button.addEventListener('click', () => {
-    themeSettings.style = themeSettings.style === 'ios' ? 'default' : 'ios'; selectTheme({ play: true, target: button });
+    themeSettings().style = themeSettings().style === 'ios' ? 'default' : 'ios'; selectTheme({ play: true, target: button });
   }));
   themePoints.querySelector('[data-bar-blur]').addEventListener('click', (event) => {
-    themeSettings.blur = !themeSettings.blur; selectTheme({ play: true, target: event.currentTarget });
+    themeSettings().blur = !themeSettings().blur; selectTheme({ play: true, target: event.currentTarget });
   });
   themePoints.querySelector('[data-bar-top-blur]').addEventListener('click', (event) => {
-    themeSettings.topBlur = !themeSettings.topBlur; selectTheme({ play: true, target: event.currentTarget });
+    themeSettings().topBlur = !themeSettings().topBlur; selectTheme({ play: true, target: event.currentTarget });
   });
   themePoints.querySelector('[data-theme-back]').addEventListener('click', (event) => selectTheme({ play: true, back: true, target: event.currentTarget }));
+  themePoints.querySelector('[data-pad-rail]').addEventListener('click', (event) => {
+    themeSettings().expanded = !themeSettings().expanded; selectTheme({ play: true, rail: true, target: event.currentTarget });
+  });
   selectTheme();
   document.addEventListener('site-theme-change', () => {
     // Changing website color mode returns to stills; it never starts a movie.

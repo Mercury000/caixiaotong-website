@@ -20,7 +20,9 @@ MP4、PNG 和 WebP 资源使用 Git LFS 管理，包括已有资源。克隆仓�
 
 网站默认跟随系统的深浅偏好，顶部按钮可切换并记住选择。首屏、四页截图、功能预览和短演示使用对应模式的原生渲染素材；切换模式时停止正在播放的演示并回到静态图。初始配色在样式加载前确定，避免浅色背景闪烁。
 
-主题区域使用一个手机，背景由柔和光晕与轻阴影融入页面。底栏贴底或悬浮、默认或 iOS 悬浮样式、底栏与顶栏模糊分别控制，组合时保留其他选项；切回贴底时悬浮样式按钮变淡并禁用，位置不变，再次悬浮仍保留所选样式。十二种组合各有当前深浅模式下的原生静态图、滚动和手势返回短演示，直接展示效果，不包含设置页。选择后先平滑切换截图，再按需播放当前组合的原生操作；手势返回使用相同组合。每次只加载一个短视频，缓冲或加载失败时保留完整预览，播放结束后释放视频。
+主题区域的背景由柔和光晕与轻阴影融入页面。底栏贴底或悬浮、默认或 iOS 悬浮样式、底栏与顶栏模糊分别控制，组合时保留其他选项；切回贴底时隐藏悬浮样式，再次悬浮仍保留所选样式，按钮淡入显示。十二种组合各有当前深浅模式下的原生静态图、滚动和手势返回短演示，直接展示效果，不包含设置页。选择后先平滑切换截图，再按需播放当前组合的原生操作；手势返回使用相同组合。每次只加载一个短视频，缓冲或加载失败时保留完整预览，播放结束后释放视频。
+
+同一区域可切换手机和平板，分别保留各自选项。平板使用 1280 × 800 的原生宽屏布局，默认展示展开的侧边导航；侧栏按钮对应应用左上角的收起和展开操作，用原生短片展示宽度变化，完成后回到相应静态图。仅显示当前布局适用的选项：悬浮模式隐藏侧栏按钮，侧栏模式隐藏底栏样式与底栏模糊；重新适用时按钮淡入，保留原选择。预测性返回保留当前侧栏状态、悬浮样式与模糊组合。其他平板选项使用对应深浅模式的原生截图交叉过渡，浏览及设备切换不请求视频。手机与平板双向切换时，原设备画面与新设备交叉淡化并轻微位移，保持滚动位置；新设备素材缺失时保留原设备的完整画面与比例。电脑直接显示选项，平板的侧栏操作与其他选项同排；手机和窄横屏收进“界面效果”面板，主页面仅保留设备切换和返回入口。面板打开时保留演示画面并释放视频，选择后收起面板以便查看效果。
 
 首屏标题、说明、操作和手机依次渐入，其他模块在内容进入阅读区域后播放入场；完全离屏后重置，上下滑回看均可重播。四页预览、主题和隐私区域的文案与视觉分别入场，兼容手机布局；减少动态效果偏好下直接显示。顶部链接使用相同的点击范围与间距，右侧下载和主题按钮作为一组排列，窄屏保留菜单按钮。
 
@@ -39,6 +41,10 @@ python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-motion-frame
 .\tools\render_demos.ps1 -AndroidRepo D:\mercu\Desktop\yktwx -Frames D:\mercu\Desktop\yktwx\tools\website-motion-frames-dark -Mode dark
 python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-motion-frames-dark --ffmpeg D:\ffmpeg\bin\ffmpeg.exe --showcase-only --mode dark --pages
 python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-motion-frames-dark --ffmpeg D:\ffmpeg\bin\ffmpeg.exe --theme-only --mode dark
+.\tools\render_demos.ps1 -AndroidRepo D:\mercu\Desktop\yktwx -Frames D:\mercu\Desktop\yktwx\tools\website-tablet-frames -TabletOnly
+python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-tablet-frames --tablet-only
+.\tools\render_demos.ps1 -AndroidRepo D:\mercu\Desktop\yktwx -Frames D:\mercu\Desktop\yktwx\tools\website-tablet-frames -TabletOnly -Mode dark
+python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-tablet-frames --tablet-only --mode dark
 ```
 
 渲染脚本从 Android 仓库 HEAD 创建隔离快照，仅在快照内启用多个示例房间、隐藏预览提示。保留预览数据及支付限制，操作不提交订单，也不触发实际充值。需要 Android 项目的 JDK/SDK 环境，以及安装 Pillow 的 Python 和 FFmpeg。

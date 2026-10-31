@@ -244,8 +244,8 @@
     </section>
 
     <section class="details section shell">
-      <div class="detail-row detail-row--theme" id="theme">
-        <div class="detail-row__visual detail-row__visual--theme reveal reveal--delay-1">
+      <div class="detail-row detail-row--theme" id="theme" data-device="phone">
+        <div class="detail-row__visual detail-row__visual--theme reveal reveal--delay-1" id="theme-preview">
           <figure class="theme-preview">
             <div class="screen-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i><span><b></b><b></b><b></b><b></b></span></div>
             <img data-media-image data-theme-image src="assets/demos/theme-bar-floating-plain-light.webp" width="576" height="1248" loading="lazy" decoding="async" alt="默认悬浮底栏效果">
@@ -259,15 +259,24 @@
         <div class="detail-row__copy reveal">
           <span class="kicker">你的风格</span>
           <h2>顺手的界面，<br>由你来定。</h2>
-          <p>底栏贴底或悬浮，样式与顶栏、底栏模糊自由搭配。滑动内容、返回上一页，直接看看组合后的效果。</p>
+          <p data-theme-description>底栏贴底或悬浮，样式与顶栏、底栏模糊自由搭配。滑动内容、返回上一页，直接看看组合后的效果。</p>
+          <div class="theme-device-tabs" role="group" aria-label="预览设备">
+            <button type="button" data-theme-device="phone" aria-pressed="true" aria-controls="theme-preview"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="2" width="10" height="16" rx="3"/><path d="M9 15h2"/></svg>手机</button>
+            <button type="button" data-theme-device="tablet" aria-pressed="false" aria-controls="theme-preview"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="4" width="16" height="12" rx="3"/><path d="M5 9v2"/></svg>平板</button>
+          </div>
           <div class="theme-options" data-theme-points role="group" aria-label="界面效果">
-            <div class="theme-toggles" role="group" aria-label="可叠加的界面选项">
+            <button type="button" class="theme-option theme-options-opener" data-theme-options-open popovertarget="theme-effect-options" aria-label="调整界面效果"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h5m4 0h5M3 14h9m4 0h1"/><circle cx="10" cy="6" r="2"/><circle cx="14" cy="14" r="2"/></svg>界面效果</button>
+            <div class="theme-toggles" id="theme-effect-options" role="group" aria-label="可叠加的界面选项">
+              <div class="theme-options-heading"><span>界面效果</span><button type="button" popovertarget="theme-effect-options" popovertargetaction="hide" aria-label="关闭界面效果"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></div>
               <button type="button" class="theme-option" data-bar-position aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="4"/><path d="M7 13h6"/></svg>悬浮底栏</button>
               <button type="button" class="theme-option" data-bar-style="ios" data-floating-style aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="6" width="16" height="8" rx="4"/><path d="M6 10h.01M10 10h.01M14 10h.01"/></svg>iOS 样式</button>
               <button type="button" class="theme-option" data-bar-blur aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8" cy="10" r="5"/><circle cx="12" cy="10" r="5"/></svg>底栏模糊</button>
               <button type="button" class="theme-option" data-bar-top-blur aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="4"/><path d="M6 7h8M7 10h6"/></svg>顶栏模糊</button>
             </div>
-            <button type="button" class="theme-back" data-theme-back><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 13H8a4 4 0 0 1 0-8h3M8 2l-3 3 3 3"/></svg>预测性返回</button>
+            <div class="theme-extra-actions">
+              <button type="button" class="theme-option" data-pad-rail aria-pressed="true" aria-label="收起侧栏" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="3"/><path d="M7 3v14M4.5 7h.01M4.5 10h.01"/></svg><span data-pad-rail-label>收起侧栏</span></button>
+              <button type="button" class="theme-back" data-theme-back><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 13H8a4 4 0 0 1 0-8h3M8 2l-3 3 3 3"/></svg>预测性返回</button>
+            </div>
           </div>
         </div>
       </div>
