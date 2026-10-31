@@ -112,7 +112,6 @@ tabs.forEach((tab) => {
     if (tab.classList.contains('is-active')) return;
 
     showcasePhone?.setAttribute('aria-busy', 'true');
-    if (showcaseStatus) showcaseStatus.textContent = `正在加载${tab.dataset.label}…`;
 
     try {
       // Keep the visible image and selected tab together until decoding finishes.
