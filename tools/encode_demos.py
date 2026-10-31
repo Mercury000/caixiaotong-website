@@ -75,6 +75,60 @@ def export_pages(args):
                     target.parent / f"{target.name}{suffix}.webp", lossless=True, method=6)
 
 
+def export_tablet(args):
+    report = []
+    for variant in THEME_VARIANTS:
+        scene = f"theme-pad-{variant}-{args.mode}"
+        with Image.open(args.frames / f"{scene}.png") as image:
+            if image.size != (1280, 800):
+                raise RuntimeError(f"Unexpected tablet capture size: {scene}")
+            target = args.output / f"{scene}.webp"
+            image.save(target, lossless=True, method=6)
+        report.append({"scene": scene, "bytes": target.stat().st_size})
+    for top in ("", "-top-blur"):
+        for blur in ("plain", "blur"):
+            scene = f"theme-pad-docked-{blur}{top}-collapsed-{args.mode}"
+            with Image.open(args.frames / f"theme-pad-docked-plain{top}-collapsed-{args.mode}.png") as image:
+                image.save(args.output / f"{scene}.webp", lossless=True, method=6)
+        for action in ("expand", "collapse"):
+            scene = f"theme-pad-rail-{action}{top}-{args.mode}"
+            frames = native_frames(args.frames, scene, (0, 25))
+            movie = args.output / f"{scene}.mp4"
+            process = encoder(args.ffmpeg, movie)
+            try:
+                for frame in frames:
+                    process.stdin.write(frame.read_bytes())
+                process.stdin.write(frames[-1].read_bytes() * 10)
+            finally:
+                process.stdin.close()
+            if process.wait() != 0:
+                raise RuntimeError(f"Encoding failed: {scene}")
+            report.append({"scene": scene, "bytes": movie.stat().st_size})
+    report.extend(encode_tablet_back(args))
+    return report
+
+
+def encode_tablet_back(args):
+    report = []
+    for variant in THEME_VARIANTS:
+        for collapsed in ("", "-collapsed") if variant.startswith("docked") else ("",):
+            asset = f"theme-pad-back-{variant}{collapsed}-{args.mode}"
+            source = asset.replace("docked-blur", "docked-plain")
+            frames = native_frames(args.frames, source, (0, 41))
+            movie = args.output / f"{asset}.mp4"
+            process = encoder(args.ffmpeg, movie)
+            try:
+                for frame in frames:
+                    process.stdin.write(frame.read_bytes())
+                process.stdin.write(frames[-1].read_bytes() * 10)
+            finally:
+                process.stdin.close()
+            if process.wait() != 0:
+                raise RuntimeError(f"Encoding failed: {asset}")
+            report.append({"scene": asset, "bytes": movie.stat().st_size})
+    return report
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("frames", type=Path)
@@ -86,11 +140,19 @@ def main():
     parser.add_argument("--showcase-only", action="store_true", help="Encode short, manually selected page demonstrations.")
     parser.add_argument("--mode", choices=("light", "dark"), default="light")
     parser.add_argument("--pages", action="store_true", help="Export the four static pages for this color mode.")
+    parser.add_argument("--tablet-only", action="store_true", help="Export native wide-window theme stills.")
+    parser.add_argument("--tablet-back-only", action="store_true", help="Encode only the native tablet return demonstrations.")
     parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[1] / "assets" / "demos")
     args = parser.parse_args()
     if not args.ffmpeg:
         parser.error("Pass --ffmpeg with the path to ffmpeg.")
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.tablet_back_only:
+        print(json.dumps(encode_tablet_back(args), ensure_ascii=False, indent=2))
+        return
+    if args.tablet_only:
+        print(json.dumps(export_tablet(args), ensure_ascii=False, indent=2))
+        return
     if args.pages:
         export_pages(args)
     if args.theme_only:

@@ -3,7 +3,8 @@ param(
     [string]$Frames,
     [string]$BuildDirectory,
     [ValidateSet('light', 'dark')][string]$Mode = 'light',
-    [switch]$ThemeOnly
+    [switch]$ThemeOnly,
+    [switch]$TabletOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,6 +26,7 @@ Remove-Item -LiteralPath $archive
 Copy-Item -LiteralPath (Join-Path $appSource 'local.properties') -Destination $buildRoot
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'WebsiteMotionTest.kt') -Destination (Join-Path $buildRoot 'app\src\test\java\com\mercury\yktwx\WebsiteMotionTest.kt')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'WebsiteThemeTest.kt') -Destination (Join-Path $buildRoot 'app\src\test\java\com\mercury\yktwx\WebsiteThemeTest.kt')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'WebsiteTabletTest.kt') -Destination (Join-Path $buildRoot 'app\src\test\java\com\mercury\yktwx\WebsiteTabletTest.kt')
 
 # These presentation fixtures affect only the isolated preview, never production UI.
 $fixture = Join-Path $buildRoot 'app\src\uiPreview\kotlin\com\mercury\yktwx\preview\PreviewData.kt'
@@ -49,11 +51,17 @@ $previousMode = $env:WEBSITE_COLOR_MODE
 try {
     $env:WEBSITE_MOTION_FRAMES = $frameRoot
     $env:WEBSITE_COLOR_MODE = $Mode
-    $captureTests = if ($ThemeOnly) { @() } else { @('paymentScenes', 'paymentRecharge', 'hallScenes', 'hallRooms', 'billScenes', 'mineScenes', 'mineTheme') }
-    $captureTests += if ($Mode -eq 'dark') { 'paymentPrivacyDark' } else { 'paymentPrivacyLight' }
     $captureArgs = @(':app:testDebugUnitTest')
-    foreach ($captureTest in $captureTests) { $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteMotionTest.$captureTest") }
-    $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteThemeTest.${Mode}Variants")
+    if ($TabletOnly) {
+        $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteTabletTest.${Mode}Layouts")
+        $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteTabletTest.${Mode}Rail")
+        $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteTabletTest.${Mode}Back")
+    } else {
+        $captureTests = if ($ThemeOnly) { @() } else { @('paymentScenes', 'paymentRecharge', 'hallScenes', 'hallRooms', 'billScenes', 'mineScenes', 'mineTheme') }
+        $captureTests += if ($Mode -eq 'dark') { 'paymentPrivacyDark' } else { 'paymentPrivacyLight' }
+        foreach ($captureTest in $captureTests) { $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteMotionTest.$captureTest") }
+        $captureArgs += @('--tests', "com.mercury.yktwx.WebsiteThemeTest.${Mode}Variants")
+    }
     $captureArgs += '--no-configuration-cache'
     & (Join-Path $buildRoot 'gradlew.bat') -p $buildRoot @captureArgs
     if ($LASTEXITCODE -ne 0) { throw "Native capture failed. Inspect the reports in $buildRoot." }
