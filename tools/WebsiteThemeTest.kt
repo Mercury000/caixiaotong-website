@@ -95,12 +95,33 @@ class WebsiteThemeTest {
     }
     private fun finish() { frames(20); settle(); println("CAPTURED ${scene.name}: $sequence") }
 
+    private fun dragContent(up: Boolean, count: Int) {
+        val list = compose.onAllNodes(hasScrollAction())[0]
+        val bounds = list.fetchSemanticsNode().boundsInRoot
+        val start = androidx.compose.ui.geometry.Offset(bounds.width / 2, bounds.height * if (up) .75f else .25f)
+        list.performTouchInput { down(start) }
+        repeat(count) { index ->
+            list.performTouchInput { moveTo(start.copy(y = start.y + bounds.height * .025f * (index + 1) * if (up) -1 else 1)) }
+            frames(1)
+        }
+        list.performTouchInput { up() }
+    }
+
     @Test fun settingsControls() {
         setup(controls = true)
         begin("settings-floating"); click("悬浮底栏"); frames(30); click("悬浮底栏"); frames(30); finish()
         begin("settings-style"); dropdown("悬浮底栏样式"); frames(20); option("iOS"); frames(30); dropdown("悬浮底栏样式"); frames(20); option("默认"); frames(30); finish()
-        begin("settings-blur"); click("底栏模糊"); frames(30); click("顶栏模糊"); frames(30); click("底栏模糊"); click("顶栏模糊"); frames(30); finish()
+        recordBlurControls()
         begin("settings-back"); click("预测性返回动画"); frames(20); click("预测性返回动画"); frames(20); frames(40, 1); frames(40, 1); finish()
+    }
+
+    @Test fun settingsBlur() { setup(controls = true); recordBlurControls() }
+    private fun recordBlurControls() {
+        begin("settings-blur"); frames(20, 1)
+        click("底栏模糊"); frames(18)
+        click("顶栏模糊"); frames(18)
+        click("底栏模糊"); click("顶栏模糊"); frames(18)
+        frames(16, 1); finish()
     }
 
     @Test fun lightEffects() = effects(1)
@@ -108,11 +129,20 @@ class WebsiteThemeTest {
     private fun effects(mode: Int) {
         setup(mode)
         val suffix = if (mode == 1) "light" else "dark"
-        begin("effect-floating-$suffix"); compose.runOnIdle { settings.setFloating(false) }; frames(30); compose.runOnIdle { settings.setFloating(true) }; frames(30); finish()
-        begin("effect-style-$suffix"); frames(20, 1); compose.runOnIdle { settings.setFloatingStyle(1) }; frames(30); frames(20, 1); compose.runOnIdle { settings.setFloatingStyle(0) }; frames(30); finish()
-        // Move content under the bars so translucency and texture blur have visible detail.
-        compose.onAllNodes(hasScrollAction())[0].performTouchInput { swipeUp() }; settle()
-        begin("effect-blur-$suffix"); compose.runOnIdle { settings.setBlurBottom(true) }; frames(30); compose.runOnIdle { settings.setBlurTop(true) }; frames(30); compose.runOnIdle { settings.setBlurBottom(false); settings.setBlurTop(false) }; frames(30); finish()
+        val onlyScene = System.getenv("WEBSITE_THEME_SCENE")
+        if (onlyScene == null || onlyScene == "floating") {
+            begin("effect-floating-$suffix"); compose.runOnIdle { settings.setFloating(false) }; frames(30); compose.runOnIdle { settings.setFloating(true) }; frames(30); finish()
+        }
+        if (onlyScene == null || onlyScene == "style") {
+            begin("effect-style-$suffix"); frames(20, 1); compose.runOnIdle { settings.setFloatingStyle(1) }; frames(30); frames(20, 1); compose.runOnIdle { settings.setFloatingStyle(0) }; frames(30); finish()
+        }
+        if (onlyScene == null || onlyScene == "blur") {
+            begin("effect-blur-$suffix"); dragContent(up = true, count = 12); frames(8)
+            compose.runOnIdle { settings.setBlurBottom(true) }; frames(18)
+            compose.runOnIdle { settings.setBlurTop(true) }; frames(18)
+            compose.runOnIdle { settings.setBlurBottom(false); settings.setBlurTop(false) }; frames(18)
+            dragContent(up = false, count = 12); frames(4); finish()
+        }
     }
 
     @Test fun lightBack() = backEffect(1)
@@ -120,9 +150,9 @@ class WebsiteThemeTest {
     private fun backEffect(mode: Int) {
         setup(mode)
         val suffix = if (mode == 1) "light" else "dark"
-        compose.onNodeWithContentDescription("个人信息").performClick(); settle()
+        begin("effect-back-$suffix")
+        compose.onNodeWithContentDescription("个人信息").performClick(); frames(30); frames(10, 1)
         compose.onNodeWithText("学工号").assertExists()
-        begin("effect-back-$suffix"); frames(40, 1)
         val dispatcher = compose.activity.onBackPressedDispatcher
         fun event(progress: Float) = BackEventCompat(progress * 400f, 400f, progress, BackEventCompat.EDGE_LEFT)
         compose.runOnIdle { dispatcher.dispatchOnBackStarted(event(0f)) }

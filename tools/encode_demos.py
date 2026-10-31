@@ -24,13 +24,37 @@ def main():
     parser.add_argument("frames", type=Path)
     parser.add_argument("--ffmpeg", default=shutil.which("ffmpeg"))
     parser.add_argument("--scene", choices=SCENES, action="append")
+    parser.add_argument("--tour", action="store_true", help="Encode the continuous native tour and its chapters.")
+    parser.add_argument("--theme-only", action="store_true", help="Encode only the three-screen theme scenes.")
     parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[1] / "assets" / "demos")
     args = parser.parse_args()
     if not args.ffmpeg:
         parser.error("Pass --ffmpeg with the path to ffmpeg.")
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.tour:
+        source = args.frames / "tour"
+        metadata = json.loads((source / "chapters.json").read_text(encoding="utf-8"))
+        count = round(metadata["duration"] * 20)
+        if not all((source / f"{index:04d}.png").is_file() for index in range(count)):
+            raise RuntimeError("Incomplete continuous native tour")
+        subprocess.run([args.ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                        "-framerate", "20", "-i", str(source / "%04d.png"), "-frames:v", str(count),
+                        "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p",
+                        "-movflags", "+faststart", str(args.output / "tour.mp4")], check=True)
+        # Chapter ends precede the native pager transition into the next page.
+        for index, chapter in enumerate(metadata["chapters"]):
+            if "end" not in chapter:
+                following = metadata["chapters"][index + 1] if index + 1 < len(metadata["chapters"]) else None
+                gap = 1.2 if following and chapter["id"].split("-")[0] != following["id"].split("-")[0] else 0
+                chapter["end"] = following["start"] - gap if following else metadata["duration"] - 1.5
+        (args.output / "tour.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        with Image.open(source / "0000.png") as image:
+            image.save(args.output / "tour.webp", lossless=True, method=6)
+        print(json.dumps({"tour": metadata, "bytes": (args.output / "tour.mp4").stat().st_size}, indent=2))
+        return
     report = []
-    for scene in args.scene or SCENES:
+    scenes = args.scene or [name for name in SCENES if not args.theme_only or name.startswith(("settings-", "effect-"))]
+    for scene in scenes:
         count = SCENES[scene]
         frames = [args.frames / scene / f"{index:04d}.png" for index in range(count)]
         if not all(frame.is_file() for frame in frames):

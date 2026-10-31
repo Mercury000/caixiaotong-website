@@ -9,6 +9,7 @@
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script src="script.js" defer></script>
+  <script src="demo-player.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -87,9 +88,11 @@
     <section class="showcase" id="experience">
       <div class="shell showcase__inner">
         <div class="showcase__copy reveal">
-          <span class="kicker">看看你每天会用的界面</span>
-          <h2>四个页面，<br>照顾校园日常。</h2>
-          <p class="showcase__intro">从食堂付款到宿舍缴费，常用入口都在熟悉的位置。</p>
+          <div class="showcase__heading">
+            <span class="kicker">看看你每天会用的界面</span>
+            <h2>四个页面，<br>照顾校园日常。</h2>
+            <p class="showcase__intro">从食堂付款到宿舍缴费，常用入口都在熟悉的位置。</p>
+          </div>
           <div class="showcase-tabs" role="tablist" aria-label="应用界面预览">
             <button class="showcase-tab is-active" id="tab-payment" type="button" role="tab" aria-selected="true" aria-controls="screen-panel" tabindex="0" data-screen="payment-light" data-label="付款页面" data-title="打开就能付，余额随手看。" data-description="条形码和二维码同屏展示，轻触即可放大。查看校园卡余额，也能直接为自己充值。" data-points="双码展示|轻触放大|余额与充值">付款</button>
             <button class="showcase-tab" id="tab-hall" type="button" role="tab" aria-selected="false" aria-controls="screen-panel" tabindex="-1" data-screen="hall-light" data-label="大厅页面" data-title="宿舍水电，随时心中有数。" data-description="查看绑定房间的剩余电量，在同一处完成水电、校园网缴费和代人充值。" data-points="房间管理|水电缴费|校园网充值">大厅</button>
@@ -99,7 +102,12 @@
           <div class="showcase-description" data-showcase-description>
             <h3 data-screen-title>打开就能付，余额随手看。</h3>
             <p data-screen-description>条形码和二维码同屏展示，轻触即可放大。查看校园卡余额，也能直接为自己充值。</p>
-            <ul class="screen-points" data-screen-points><li>双码展示</li><li>轻触放大</li><li>余额与充值</li></ul>
+            <div class="showcase-actions">
+              <ul class="screen-points" data-screen-points><li>双码展示</li><li>轻触放大</li><li>余额与充值</li></ul>
+              <button type="button" class="demo-control" data-demo-play aria-label="播放演示" title="播放演示">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 8 6-8 6z"/></svg>
+              </button>
+            </div>
           </div>
         </div>
         <div class="showcase__stage reveal reveal--delay-1" id="screen-panel" role="tabpanel" aria-labelledby="tab-payment" tabindex="0">
@@ -109,11 +117,6 @@
             <div class="phone__speaker" aria-hidden="true"></div>
             <img data-showcase-image src="assets/payment-light.webp" srcset="assets/payment-light.webp 480w, assets/payment-light@2x.webp 960w" sizes="(max-width: 760px) 250px, 285px" width="480" height="1041" loading="lazy" decoding="async" alt="财小通付款页面">
             <span class="phone__shine" aria-hidden="true"></span>
-          </div>
-          <div class="demo-controls" data-demo-controls hidden>
-            <button type="button" class="demo-control" data-demo-play aria-label="暂停自动播放" title="暂停自动播放">
-              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5v10M13 5v10"/></svg>
-            </button>
           </div>
         </div>
       </div>

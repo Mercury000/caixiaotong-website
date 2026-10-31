@@ -33,7 +33,7 @@ class WebsiteMotionTest {
     private fun start(tab: String) {
         val app = compose.activity.application
         app.getSharedPreferences("ui_settings", Context.MODE_PRIVATE).edit().clear().commit()
-        settings = ThemeSettings(app).apply { setTheme(1); setFloating(true); setFloatingStyle(1) }
+        settings = ThemeSettings(app).apply { setTheme(1); setFloating(true); setFloatingStyle(1); setBlurBottom(true) }
         val payment = PaymentViewModel(app).apply { initialize(true) }
         val bills = BillViewModel(app).apply { initialize(true) }
         compose.setContent {
@@ -175,6 +175,96 @@ class WebsiteMotionTest {
         back(); frames(16)
         back(); frames(16)
         compose.runOnIdle { settings.setTheme(1) }; finish()
+    }
+
+    @Test fun continuousTour() {
+        start("付款")
+        begin("tour")
+        val chapters = org.json.JSONArray()
+        fun chapter(id: String, action: () -> Unit) {
+            chapters.put(org.json.JSONObject().put("id", id).put("start", sequence / 20.0))
+            frames(16, movingFrames = 1)
+            action()
+            frames(24)
+            chapters.getJSONObject(chapters.length() - 1).put("end", sequence / 20.0)
+        }
+        chapter("payment-qr") {
+            compose.onNodeWithContentDescription("付款二维码").performClick(); frames(30)
+            click("收起"); frames(20)
+        }
+        chapter("payment-barcode") {
+            compose.onNodeWithContentDescription("付款条形码").performClick(); frames(30)
+            click("收起"); frames(20)
+        }
+        chapter("payment-recharge") {
+            compose.onNode(hasText("充值") and hasClickAction() and !hasTestTag("network-recharge")).performClick(); frames(24)
+            click("¥ 10"); frames(16)
+            click("¥ 50"); frames(20)
+            back(); frames(24)
+        }
+        click("大厅"); frames(24)
+        chapter("hall-rooms") {
+            click("切换"); frames(24)
+            compose.onNodeWithTag("hall-room-1").performClick(); frames(24)
+            frames(20)
+        }
+        chapter("hall-electricity") {
+            click("照明充值"); frames(26)
+            click("¥ 10"); frames(18)
+            back(); frames(24)
+        }
+        chapter("hall-network") {
+            compose.onNodeWithTag("network-recharge").performClick(); frames(30)
+            back(); frames(24)
+        }
+        click("账单"); frames(24)
+        chapter("bill-filter") {
+            compose.onNodeWithContentDescription("筛选账单").performClick(); frames(30)
+            back(); frames(24)
+        }
+        chapter("bill-date") {
+            compose.onNodeWithContentDescription("选择日期").performClick(); frames(30)
+            back(); frames(24)
+        }
+        chapter("bill-stats") {
+            click("统计"); frames(28)
+            compose.onNodeWithTag("bill-trend-plot").performTouchInput { click(center) }; frames(24)
+            click("明细"); frames(24)
+        }
+        click("我的"); frames(24)
+        chapter("mine-account") {
+            click("账户详情"); frames(30)
+            back(); frames(24)
+        }
+        chapter("mine-profile") {
+            compose.onNodeWithContentDescription("个人信息").performClick(); frames(30)
+            back(); frames(24)
+        }
+        chapter("mine-theme") {
+            // Record the actual drag instead of jumping the list to the settings row.
+            val list = compose.onAllNodes(hasScrollToIndexAction())[0]
+            val bounds = list.fetchSemanticsNode().boundsInRoot
+            val start = androidx.compose.ui.geometry.Offset(bounds.width / 2, bounds.height * .72f)
+            list.performTouchInput { down(start) }
+            repeat(12) { index ->
+                list.performTouchInput { moveTo(start.copy(y = start.y - bounds.height * .035f * (index + 1))) }
+                frames(1)
+            }
+            list.performTouchInput { up() }; frames(16)
+            click("应用设置"); frames(24)
+            click("主题"); frames(24)
+            dropdown("主题"); frames(20)
+            click("深色"); frames(28)
+            dropdown("主题"); frames(20)
+            click("浅色"); frames(28)
+            back(); frames(24)
+            back(); frames(24)
+        }
+        // Return to the starting screen through the native pager before looping.
+        click("付款"); frames(30)
+        File(scene, "chapters.json").writeText(org.json.JSONObject()
+            .put("duration", sequence / 20.0).put("chapters", chapters).toString(2))
+        println("CAPTURED tour: $sequence native frames")
     }
 
 }

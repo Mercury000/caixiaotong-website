@@ -45,7 +45,7 @@ internal object PreviewNotes {
 $previousFrames = $env:WEBSITE_MOTION_FRAMES
 try {
     $env:WEBSITE_MOTION_FRAMES = $frameRoot
-    & (Join-Path $buildRoot 'gradlew.bat') -p $buildRoot :app:testDebugUnitTest --tests 'com.mercury.yktwx.WebsiteMotionTest' --tests 'com.mercury.yktwx.WebsiteThemeTest' --no-configuration-cache
+    & (Join-Path $buildRoot 'gradlew.bat') -p $buildRoot :app:testDebugUnitTest --tests 'com.mercury.yktwx.WebsiteMotionTest.continuousTour' --tests 'com.mercury.yktwx.WebsiteThemeTest.settingsControls' --tests 'com.mercury.yktwx.WebsiteThemeTest.lightEffects' --tests 'com.mercury.yktwx.WebsiteThemeTest.darkEffects' --tests 'com.mercury.yktwx.WebsiteThemeTest.lightBack' --tests 'com.mercury.yktwx.WebsiteThemeTest.darkBack' --no-configuration-cache
     if ($LASTEXITCODE -ne 0) { throw "Native capture failed. Inspect the reports in $buildRoot." }
 } finally {
     $env:WEBSITE_MOTION_FRAMES = $previousFrames

@@ -1,6 +1,6 @@
 # 财小通官网
 
-纯静态实现，无构建依赖。直接打开 `index.html`，或在仓库根目录运行：
+纯静态实现，无构建依赖。在仓库根目录运行本地预览：
 
 ```powershell
 python .\tools\preview_server.py
@@ -12,15 +12,20 @@ MP4、PNG 和 WebP 资源使用 Git LFS 管理，包括已有资源。克隆仓�
 
 页面截图于 2026-10-31 从财小通当前代码的原生 Compose preview 重新渲染，账号、金额及付款码均为虚构数据。`assets/` 保留 PNG 原图，网页使用 480px / 960px 两档无损 WebP，并按需加载。
 
-四页展示进入视口后自动依次播放付款码放大、充值金额选择、房间切换、水电及校园网缴费、账单筛选及统计、账户与主题设置等 12 段原生操作。沿用原有功能标签，点选可切换，右下角图标可暂停；离开视口或切到后台会暂停，减少动态效果偏好默认停在静态画面。素材未就绪时保留当前画面，不显示加载或失败文案。
+四页展示使用约 74 秒的连续原生录制，涵盖付款码放大、充值金额选择、房间切换、水电及校园网缴费、账单筛选及统计、账户与主题设置等 12 项操作。页面切换、弹层收起和滚动保留同一应用会话的连续状态。原有功能标签根据 `assets/demos/tour.json` 跳转章节，手动选择只播放该项并停留；点击播放按钮可继续完整演示。
 
-主题区域使用三个手机：中间始终保持浅色的原生主题设置页，两侧同步播放浅色和深色应用效果。展示悬浮底栏开关、默认 / iOS 样式、顶底栏模糊与预测性返回手势。设置操作和效果按相同时间轴捕获，不叠加挡住界面的标签。素材切换仅对屏幕内容做短暂淡入，手机外框保持稳定。
+演示屏幕和控制区完整进入视口、停留 500ms 后才自动播放。离开区域、切到后台或打开手机导航菜单会暂停，回来后继续当前进度。接近展示区时只预载素材，减少动态效果偏好默认暂停。素材未就绪时保留当前画面，不显示加载或失败文案。
 
-动画由当前 Android Compose 组件逐帧渲染，使用 576px、20fps 的静音 H.264 MP4，并只预载下一组。`tools/WebsiteMotionTest.kt` 与 `tools/WebsiteThemeTest.kt` 记录操作；原始 PNG 帧留在 Android 项目的工具目录，网页仅包含视频和 WebP 封面。本地预览服务器支持视频字节范围请求，便于暂停、拖动和同步播放。重新生成：
+主题区域使用三个手机：中间保持浅色的原生主题设置页，两侧同步播放浅色和深色应用效果。展示悬浮底栏开关、默认 / iOS 样式、顶底栏模糊与预测性返回手势。设置操作和效果按相同时间轴捕获，页面滚动与个人页进入也实际录制；任一视频缓冲时三屏一起等待。手动选择的效果结束后停留，不叠加挡住界面的标签。
+
+四页操作展示使用开启底栏模糊的 iOS 悬浮样式。主题区域的样式切换保持模糊关闭，iOS 底栏显示不透明表面，模糊效果由对应开关单独控制。
+
+动画由当前 Android Compose 组件逐帧渲染，使用 576px、20fps 的静音 H.264 MP4。`tools/WebsiteMotionTest.kt` 与 `tools/WebsiteThemeTest.kt` 记录操作；原始 PNG 帧留在 Android 项目的工具目录，网页仅包含视频和 WebP 封面。本地预览服务器支持视频字节范围请求，便于章节跳转和同步播放。重新生成：
 
 ```powershell
 .\tools\render_demos.ps1 -AndroidRepo D:\mercu\Desktop\yktwx
-python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-motion-frames --ffmpeg D:\ffmpeg\bin\ffmpeg.exe
+python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-motion-frames --ffmpeg D:\ffmpeg\bin\ffmpeg.exe --tour
+python .\tools\encode_demos.py D:\mercu\Desktop\yktwx\tools\website-motion-frames --ffmpeg D:\ffmpeg\bin\ffmpeg.exe --theme-only
 ```
 
 渲染脚本从 Android 仓库 HEAD 创建隔离快照，仅在快照内启用多个示例房间、隐藏预览提示。保留预览数据及支付限制，操作不提交订单，也不触发实际充值。需要 Android 项目的 JDK/SDK 环境，以及安装 Pillow 的 Python 和 FFmpeg。
