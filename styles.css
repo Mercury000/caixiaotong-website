@@ -133,8 +133,7 @@ html.is-promo-open, html.is-promo-open body { overflow: hidden; }
 .phone__speaker { position: absolute; top: 8px; left: 50%; z-index: 5; width: 10px; height: 10px; transform: translateX(-50%); border-radius: 50%; background: #111115; box-shadow: inset 0 0 0 2px #242428; }
 .phone img { width: 100%; height: auto; aspect-ratio: 411 / 891; object-fit: contain; }
 .phone video { display: block; width: 100%; height: auto; aspect-ratio: 411 / 891; object-fit: contain; background: #f6f6f6; }
-.phone .screen-entering { position: absolute; inset: 0; width: 100%; height: 100%; }
-.screen-exiting { pointer-events: none; }
+.phone .screen-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .phone__shine { position: absolute; inset: -15% 35% -15% -40%; z-index: 4; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.12), transparent 62%); transform: translateX(-120%); animation: screen-shine 7s ease-in-out infinite 1.5s; pointer-events: none; }
 .phone--hero { z-index: 2; width: 266px; height: auto; transform: rotate(4deg); transition: transform .35s var(--ease); }
 @media (hover: hover) and (pointer: fine) {
@@ -266,6 +265,7 @@ html.is-promo-open, html.is-promo-open body { overflow: hidden; }
 .detail-row__visual--theme { background: linear-gradient(145deg, #dceaff, #eff6ff); }
 .theme-preview { position: absolute; width: 190px; margin: 0; padding: 5px; border-radius: 27px; background: #17181b; box-shadow: 0 22px 45px rgba(33,76,143,.18); }
 .theme-preview img { width: 100%; height: auto; border-radius: 22px; }
+.theme-preview .screen-overlay { position: absolute; inset: 5px; width: calc(100% - 10px); height: calc(100% - 10px); border-radius: 22px; pointer-events: none; }
 .theme-preview--dark { transform: translate(100px, -12px) rotate(7deg); }
 .theme-preview--light { transform: translate(-95px, 12px) rotate(-7deg); }
 .detail-row--theme { display: flex; flex-direction: column-reverse; gap: 36px; }
@@ -470,6 +470,7 @@ html.is-promo-open, html.is-promo-open body { overflow: hidden; }
   .theme-preview { width: clamp(140px, 40vw, 175px); padding: 4px; border-radius: 22px; }
   .theme-preview img { border-radius: 18px; }
   .theme-preview video { border-radius: 18px; }
+  .detail-row--theme .theme-preview .screen-overlay { inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); border-radius: 17px; }
   .theme-points { justify-content: center; }
   .theme-preview--dark { transform: translate(clamp(51px, 16vw, 70px), -6px) rotate(6deg); }
   .theme-preview--light { transform: translate(clamp(-70px, -16vw, -51px), 6px) rotate(-6deg); }

@@ -1,294 +1,253 @@
 (() => {
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const header = document.querySelector('[data-header]');
+  const imageCache = new Map();
   const players = [];
-  const mediaCache = new Map();
 
-  const loadVideo = (id, label) => {
-    if (!mediaCache.has(id)) {
+  const loadImage = (source) => {
+    const key = source.src;
+    if (!imageCache.has(key)) {
+      const image = new Image(source.width ?? 576, source.height ?? 1248);
+      image.decoding = 'async'; image.alt = source.alt;
+      if (source.srcset) { image.srcset = source.srcset; image.sizes = source.sizes; }
+      image.src = source.src;
+      imageCache.set(key, image.decode().then(() => image).catch((error) => {
+        imageCache.delete(key); throw error;
+      }));
+    }
+    return imageCache.get(key);
+  };
+  const fadeOut = (element, duration = 220) => {
+    if (reducedMotion.matches) { element.remove(); return; }
+    element.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing: 'ease-out' })
+      .finished.then(() => element.remove()).catch(() => element.remove());
+  };
+  const replaceStill = (current, loaded) => {
+    if (current.src === loaded.src) return;
+    const next = loaded.cloneNode();
+    for (const attribute of current.attributes) {
+      if (attribute.name.startsWith('data-')) next.setAttribute(attribute.name, attribute.value);
+    }
+    const previous = current.cloneNode();
+    ['data-showcase-image', 'data-theme-image', 'data-theme-effect'].forEach((name) => previous.removeAttribute(name));
+    previous.className = 'screen-overlay'; previous.setAttribute('aria-hidden', 'true');
+    current.parentElement.querySelectorAll('.screen-overlay').forEach((element) => element.remove());
+    current.replaceWith(next); next.after(previous); fadeOut(previous);
+  };
+  const setPlayIcon = (button, paused) => {
+    const label = paused ? '继续演示' : '暂停演示';
+    button.setAttribute('aria-label', label); button.setAttribute('title', label);
+    button.querySelector('path').setAttribute('d', paused ? 'm7 4 8 6-8 6z' : 'M7 5v10M13 5v10');
+  };
+
+  // A static image always remains under the video, including while loading or buffering.
+  const makePlayer = (elements, button, progress) => {
+    let request = 0;
+    let controller;
+    let videos = [];
+    let ready = false;
+    let paused = false;
+    let buffering = false;
+    const releaseVideo = (video) => {
+      video.pause(); video.remove(); video.removeAttribute('src'); video.load();
+    };
+    const stop = () => {
+      ++request;
+      controller?.abort(); controller = null;
+      const previous = videos; videos = []; ready = false;
+      previous.forEach(releaseVideo);
+      button.hidden = true; progress(0);
+    };
+    const sync = () => {
+      if (!ready) return;
+      const playing = player.visible && !paused && !buffering;
+      videos.forEach((video) => {
+        if (playing) video.play().catch((error) => {
+          if (error.name !== 'AbortError' && videos.includes(video)) stop();
+        });
+        else video.pause();
+      });
+      setPlayIcon(button, !playing);
+    };
+    const load = (source, signal) => new Promise((resolve, reject) => {
       const video = document.createElement('video');
       Object.assign(video, { muted: true, defaultMuted: true, playsInline: true, preload: 'auto',
         disableRemotePlayback: true, width: 576, height: 1248 });
-      video.setAttribute('aria-label', label);
-      video.poster = `assets/demos/${id}.webp`;
-      const ready = new Promise((resolve, reject) => {
-        const done = (error) => {
-          clearTimeout(timer);
-          video.removeEventListener('loadeddata', loaded);
-          video.removeEventListener('error', failed);
-          if (error) reject(error); else resolve(video);
-        };
-        const loaded = () => done();
-        const failed = () => done(new Error('Unavailable media'));
-        const timer = setTimeout(failed, 15000);
-        video.addEventListener('loadeddata', loaded);
-        video.addEventListener('error', failed);
-        video.src = `assets/demos/${id}.mp4`;
-        video.load();
-      });
-      mediaCache.set(id, ready.catch((error) => { mediaCache.delete(id); throw error; }));
-    }
-    return mediaCache.get(id);
-  };
-
-  const seek = (video, time) => new Promise((resolve) => {
-    if (Math.abs(video.currentTime - time) < .04 && video.readyState >= 2) { resolve(); return; }
-    const finish = () => { clearTimeout(timer); video.removeEventListener('seeked', finish); resolve(); };
-    const timer = setTimeout(finish, 2500);
-    video.addEventListener('seeked', finish, { once: true });
-    video.currentTime = time;
-  });
-
-  const setPlayIcon = (button, paused) => {
-    const label = paused ? '播放演示' : '暂停演示';
-    button?.setAttribute('aria-label', label);
-    button?.setAttribute('title', label);
-    button?.querySelector('path').setAttribute('d', paused ? 'm7 4 8 6-8 6z' : 'M7 5v10M13 5v10');
-  };
-
-  // Visibility includes the controls, not just a corner of a phone behind the fixed header.
-  const watchPlayer = (elements, onEnter, onLeave) => {
-    const player = { elements, visible: false, timer: 0, onEnter, onLeave };
+      video.className = 'screen-overlay'; video.setAttribute('aria-label', source.label);
+      video.poster = source.image.src; video.style.opacity = '0';
+      videos.push(video);
+      const finish = (error) => {
+        clearTimeout(timer);
+        video.removeEventListener('loadeddata', loaded); video.removeEventListener('error', failed);
+        signal.removeEventListener('abort', aborted);
+        if (error) reject(error); else resolve(video);
+      };
+      const loaded = () => finish();
+      const failed = () => finish(new Error('Unavailable media'));
+      const aborted = () => finish(new DOMException('Cancelled', 'AbortError'));
+      const timer = setTimeout(failed, 12000);
+      signal.addEventListener('abort', aborted, { once: true });
+      video.addEventListener('loadeddata', loaded); video.addEventListener('error', failed);
+      video.src = source.src; video.load();
+    });
+    const start = async (sources) => {
+      stop();
+      const token = request;
+      controller = new AbortController(); paused = false; buffering = false;
+      try {
+        const loaded = await Promise.all(sources.map((source) => load(source, controller.signal)));
+        if (token !== request) return;
+        loaded.forEach((video, index) => {
+          sources[index].target().after(video);
+          video.addEventListener('error', stop, { once: true });
+          video.addEventListener('waiting', () => {
+            buffering = true; loaded.forEach((item) => { item.style.opacity = '0'; }); sync();
+          });
+          video.addEventListener('canplay', () => {
+            if (loaded.every((item) => item.readyState >= 3)) {
+              buffering = false; loaded.forEach((item) => { item.style.opacity = '1'; }); sync();
+            }
+          });
+          const reveal = () => {
+            if (token !== request || buffering) return;
+            video.style.opacity = '1';
+            if (!reducedMotion.matches) video.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 });
+          };
+          if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(reveal);
+          else video.addEventListener('playing', reveal, { once: true });
+        });
+        const master = loaded[0];
+        master.addEventListener('timeupdate', () => {
+          progress(master.duration ? master.currentTime / master.duration : 0);
+          loaded.slice(1).forEach((video) => {
+            if (Math.abs(video.currentTime - master.currentTime) > .12 && !video.seeking) video.currentTime = master.currentTime;
+          });
+        });
+        master.addEventListener('ended', () => {
+          // Fade into the settled image and dispose of every decoder.
+          loaded.forEach((video, index) => {
+            if (video.readyState < 2) return;
+            const still = document.createElement('canvas');
+            still.width = video.videoWidth; still.height = video.videoHeight;
+            still.className = 'screen-overlay'; still.setAttribute('aria-hidden', 'true');
+            still.getContext('2d').drawImage(video, 0, 0);
+            sources[index].target().after(still); fadeOut(still);
+          });
+          stop();
+        }, { once: true });
+        ready = true; button.hidden = false; sync();
+      } catch { if (token === request) stop(); }
+    };
+    const player = { elements, visible: false, timer: 0, onEnter: sync, onLeave: stop };
     players.push(player);
-    return player;
+    button.addEventListener('click', () => { paused = !paused; sync(); });
+    return { start, stop, get version() { return request; } };
+  };
+
+  const isFullyVisible = (player) => {
+    const height = window.visualViewport?.height ?? innerHeight;
+    const headerBottom = (header?.querySelector('.nav')?.getBoundingClientRect().bottom ?? 0) + 8;
+    const rects = player.elements.map((element) => element.getBoundingClientRect());
+    return !document.hidden && !document.querySelector('dialog[open]') && !header?.classList.contains('is-menu-open') &&
+      Math.min(...rects.map((rect) => rect.top)) >= headerBottom - 2 &&
+      Math.max(...rects.map((rect) => rect.bottom)) <= height - 8;
   };
   let visibilityFrame = 0;
-  const isFullyVisible = (player) => {
-    const viewportHeight = window.visualViewport?.height ?? innerHeight;
-    const headerBottom = (header?.querySelector('.nav')?.getBoundingClientRect().bottom ?? 0) + 8;
-    const rects = player.elements.map((el) => el?.getBoundingClientRect()).filter(Boolean);
-    return !document.hidden && !document.querySelector('dialog[open]') && !header?.classList.contains('is-menu-open') &&
-      Math.min(...rects.map((r) => r.top)) >= headerBottom - 2 &&
-      Math.max(...rects.map((r) => r.bottom)) <= viewportHeight - 8;
-  };
   const checkVisibility = () => {
     visibilityFrame = 0;
     for (const player of players) {
       const visible = isFullyVisible(player);
       if (visible === player.visible && (visible || !player.timer)) continue;
-      clearTimeout(player.timer);
-      player.timer = 0;
-      if (!visible) {
-        player.visible = false;
-        player.onLeave();
-      } else {
-        player.timer = setTimeout(() => {
-          player.timer = 0;
-          if (!isFullyVisible(player)) return;
-          player.visible = true;
-          player.onEnter();
-        }, 500);
-      }
+      clearTimeout(player.timer); player.timer = 0;
+      if (!visible) { player.visible = false; player.onLeave(); }
+      else player.timer = setTimeout(() => {
+        player.timer = 0;
+        if (!isFullyVisible(player)) return;
+        player.visible = true; player.onEnter();
+      }, 180);
     }
   };
   const scheduleVisibility = () => {
     if (!visibilityFrame) visibilityFrame = requestAnimationFrame(checkVisibility);
   };
-  ['scroll', 'resize', 'demo-visibility-change'].forEach((event) =>
-    (event === 'scroll' || event === 'resize' ? window : document).addEventListener(event, scheduleVisibility, { passive: true }));
+  ['scroll', 'resize'].forEach((event) => window.addEventListener(event, scheduleVisibility, { passive: true }));
+  ['demo-visibility-change', 'transitionend'].forEach((event) => document.addEventListener(event, scheduleVisibility));
   document.addEventListener('visibilitychange', checkVisibility);
   window.visualViewport?.addEventListener('resize', scheduleVisibility, { passive: true });
-  document.addEventListener('transitionend', scheduleVisibility);
   if (header) new MutationObserver(scheduleVisibility).observe(header, { attributes: true, attributeFilter: ['class'] });
 
   const tabs = [...document.querySelectorAll('.showcase-tab')];
   const panel = document.querySelector('#screen-panel');
-  const description = document.querySelector('[data-showcase-description]');
   const points = document.querySelector('[data-screen-points]');
   const playButton = document.querySelector('[data-demo-play]');
   const sceneIds = [
-    ['payment-qr', 'payment-barcode', 'payment-recharge'],
+    [null, 'payment-enlarge', 'payment-recharge'],
     ['hall-rooms', 'hall-electricity', 'hall-network'],
     ['bill-filter', 'bill-date', 'bill-stats'],
     ['mine-account', 'mine-profile', 'mine-theme'],
   ];
   let currentTab = -1;
-  let currentChapter = -1;
-  let tour;
-  let chapters = [];
-  let tourPromise;
-  let paused = reducedMotion.matches;
-  let request = 0;
-  let segmentEnd = null;
-  let segmentTimer = 0;
-  let seeking = false;
-
-  const selectTab = (index, point = -1) => {
-    if (currentTab !== index) {
-      currentTab = index;
-      const tab = tabs[index];
-      tabs.forEach((item, i) => {
-        item.classList.toggle('is-active', index === i);
-        item.setAttribute('aria-selected', String(index === i));
-        item.tabIndex = index === i ? 0 : -1;
-      });
-      panel.setAttribute('aria-labelledby', tab.id);
-      document.querySelector('[data-screen-title]').textContent = tab.dataset.title;
-      document.querySelector('[data-screen-description]').textContent = tab.dataset.description;
-      points.replaceChildren(...tab.dataset.points.split('|').map((label, p) => {
-        const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button'; button.className = 'screen-point'; button.textContent = label;
-        button.setAttribute('aria-controls', 'screen-panel');
-        button.addEventListener('click', () => selectChapter(sceneIds[index][p]));
-        li.append(button); return li;
-      }));
-      scheduleVisibility();
-    }
-    points.querySelectorAll('button').forEach((button, i) => {
-      button.classList.toggle('is-active', i === point);
-      button.setAttribute('aria-pressed', String(i === point));
+  let pageRequest = 0;
+  const pageImage = (index) => ({ src: `assets/${tabs[index].dataset.screen}.webp`,
+    srcset: `assets/${tabs[index].dataset.screen}.webp 480w, assets/${tabs[index].dataset.screen}@2x.webp 960w`,
+    sizes: '(max-width: 760px) 220px, 268px', width: 480, height: 1041, alt: `财小通${tabs[index].dataset.label}` });
+  const pagePlayer = makePlayer([panel, document.querySelector('.showcase-tabs'), document.querySelector('[data-showcase-description]')],
+    playButton, (value) => points.querySelector('.is-active')?.style.setProperty('--progress', value));
+  const selectPoint = async (index, point) => {
+    const token = ++pageRequest;
+    pagePlayer.stop();
+    const playbackVersion = pagePlayer.version;
+    points.querySelectorAll('button').forEach((button, position) => {
+      button.classList.toggle('is-active', point === position);
+      button.setAttribute('aria-pressed', String(point === position));
     });
-  };
-
-  const updateChapter = () => {
-    if (!tour || seeking) return;
-    if (segmentEnd !== null && tour.currentTime >= segmentEnd - .06) {
-      const end = segmentEnd;
-      paused = true; segmentEnd = null; syncTour();
-      if (tour.currentTime > end - .05) seek(tour, end - .05).then(updateChapter);
-      return;
-    }
-    const index = chapters.findLastIndex((chapter, i) => {
-      const previous = chapters[i - 1];
-      const changingPage = previous && previous.id.split('-')[0] !== chapter.id.split('-')[0];
-      return tour.currentTime >= (changingPage ? previous.end : chapter.start);
-    });
-    const chapter = chapters[Math.max(0, index)];
-    if (!chapter) return;
-    if (currentChapter !== index) {
-      currentChapter = index;
-      const tab = sceneIds.findIndex((ids) => ids.includes(chapter.id));
-      selectTab(tab, sceneIds[tab].indexOf(chapter.id));
-      tour.setAttribute('aria-label', `${tabs[tab].dataset.label}：${tabs[tab].dataset.points.split('|')[sceneIds[tab].indexOf(chapter.id)]}`);
-    }
-    const end = chapter.end ?? chapters[index + 1]?.start ?? tour.duration;
-    points.querySelector('.is-active')?.style.setProperty('--progress',
-      Math.min(1, Math.max(0, (tour.currentTime - chapter.start) / (end - chapter.start))));
-    if (index === chapters.length - 1 && tour.currentTime >= end && segmentEnd === null) selectTab(0);
-  };
-
-  const syncTour = () => {
-    clearTimeout(segmentTimer);
-    const shouldPlay = mainVisibility.visible && !document.hidden && !paused && !seeking;
-    if (tour) {
-      if (shouldPlay) {
-        tour.play().catch((error) => {
-          if (error.name === 'AbortError' || !mainVisibility.visible || document.hidden || seeking) return;
-          paused = true; setPlayIcon(playButton, true);
-        });
-        if (segmentEnd !== null) segmentTimer = setTimeout(() => {
-          const end = segmentEnd;
-          if (end !== null && tour.currentTime < end - .1) { syncTour(); return; }
-          paused = true; segmentEnd = null; syncTour();
-          if (end !== null && tour.currentTime > end) seek(tour, end - .05);
-        }, Math.max(0, (segmentEnd - tour.currentTime - .04) * 1000));
-      }
-      else tour.pause();
-    }
-    setPlayIcon(playButton, !shouldPlay || !tour);
-  };
-
-  const prepareTour = () => {
-    if (!tourPromise) tourPromise = Promise.all([
-      loadVideo('tour', '财小通应用操作演示'),
-      fetch('assets/demos/tour.json').then((response) => {
-        if (!response.ok) throw new Error('Unavailable chapters');
-        return response.json();
-      }),
-    ]).then(([video, metadata]) => {
-      if (!Array.isArray(metadata.chapters) || metadata.chapters.length !== 12) throw new Error('Invalid chapters');
-      tour = video; chapters = metadata.chapters;
-      tour.dataset.showcaseImage = '';
-      document.querySelector('[data-showcase-image]').replaceWith(tour);
-      tour.addEventListener('timeupdate', updateChapter);
-      tour.addEventListener('play', () => setPlayIcon(playButton, false));
-      tour.addEventListener('pause', () => setPlayIcon(playButton, true));
-      tour.addEventListener('ended', async () => {
-        if (paused) return;
-        await seek(tour, 0); currentChapter = -1; updateChapter(); syncTour();
-      });
-      updateChapter(); syncTour();
-      return video;
-    }).catch((error) => { tourPromise = null; throw error; });
-    return tourPromise;
-  };
-
-  const selectChapter = async (id, pageSelection = false) => {
-    const token = ++request;
-    const previousTab = currentTab;
-    paused = true; seeking = true; syncTour();
-    if (!tour) {
-      const tabIndex = sceneIds.findIndex((ids) => ids.includes(id));
-      selectTab(tabIndex, sceneIds[tabIndex].indexOf(id));
-      const poster = document.querySelector('img[data-showcase-image]');
-      if (poster) {
-        poster.src = `assets/${tabs[tabIndex].dataset.screen}.webp`;
-        poster.srcset = `assets/${tabs[tabIndex].dataset.screen}.webp 480w, assets/${tabs[tabIndex].dataset.screen}@2x.webp 960w`;
-        poster.alt = `财小通${tabs[tabIndex].dataset.label}`;
-      }
-    }
-    let frozenFrame;
+    const id = sceneIds[index][point];
+    const image = id ? { src: `assets/demos/${id}.webp`, alt: `${tabs[index].dataset.label}：${tabs[index].dataset.points.split('|')[point]}` } : pageImage(index);
     try {
-      await prepareTour();
-      if (token !== request) return;
-      const chapter = chapters.find((entry) => entry.id === id);
-      if (!chapter) return;
-      if (!reducedMotion.matches && tour.readyState >= 2) {
-        panel.querySelectorAll('.screen-exiting').forEach((el) => el.remove());
-        frozenFrame = document.createElement('canvas');
-        frozenFrame.width = tour.videoWidth; frozenFrame.height = tour.videoHeight;
-        frozenFrame.className = 'screen-entering screen-exiting';
-        frozenFrame.setAttribute('aria-hidden', 'true');
-        frozenFrame.getContext('2d').drawImage(tour, 0, 0);
-        tour.after(frozenFrame);
-      }
-      const end = chapter.end ?? chapters[chapters.indexOf(chapter) + 1]?.start ?? tour.duration;
-      const chapterIndex = chapters.indexOf(chapter);
-      const targetTab = sceneIds.findIndex((ids) => ids.includes(id));
-      const nativeTransition = pageSelection && targetTab === previousTab + 1 && chapterIndex > 0;
-      const start = nativeTransition ? chapters[chapterIndex - 1].end : chapter.start;
-      await seek(tour, reducedMotion.matches ? Math.min(chapter.start + 2.2, end - .3) : start);
-      if (token !== request) return;
-      if (frozenFrame) {
-        const frame = frozenFrame;
-        frame.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: 'ease-out' })
-          .finished.then(() => frame.remove()).catch(() => frame.remove());
-        frozenFrame = null;
-      }
-      segmentEnd = end;
-      currentChapter = -1; seeking = false; updateChapter();
-      paused = reducedMotion.matches; syncTour();
-    } catch { /* Keep the last complete frame and all controls available. */ }
-    finally { frozenFrame?.remove(); if (token === request) { seeking = false; syncTour(); } }
+      const loaded = await loadImage(image);
+      if (token !== pageRequest) return;
+      replaceStill(document.querySelector('[data-showcase-image]'), loaded);
+    } catch { /* Keep the complete page available when a preview is unavailable. */ }
+    if (token === pageRequest && playbackVersion === pagePlayer.version && id) pagePlayer.start([{ src: `assets/demos/${id}.mp4`, image,
+      label: image.alt, target: () => document.querySelector('[data-showcase-image]') }]);
   };
-
-  const mainVisibility = watchPlayer([panel, document.querySelector('.showcase-tabs'), description],
-    () => { prepareTour().then(syncTour).catch(() => {}); }, syncTour);
+  const selectTab = async (index) => {
+    const token = ++pageRequest;
+    pagePlayer.stop(); currentTab = index;
+    const tab = tabs[index];
+    tabs.forEach((item, position) => {
+      item.classList.toggle('is-active', index === position);
+      item.setAttribute('aria-selected', String(index === position));
+      item.tabIndex = index === position ? 0 : -1;
+    });
+    panel.setAttribute('aria-labelledby', tab.id);
+    document.querySelector('[data-screen-title]').textContent = tab.dataset.title;
+    document.querySelector('[data-screen-description]').textContent = tab.dataset.description;
+    points.replaceChildren(...tab.dataset.points.split('|').map((label, point) => {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'screen-point'; button.textContent = label;
+      button.setAttribute('aria-controls', 'screen-panel'); button.setAttribute('aria-pressed', 'false');
+      button.addEventListener('click', () => selectPoint(index, point));
+      li.append(button); return li;
+    }));
+    scheduleVisibility();
+    try {
+      const loaded = await loadImage(pageImage(index));
+      if (token === pageRequest) replaceStill(document.querySelector('[data-showcase-image]'), loaded);
+    } catch { /* Preserve the last image until a new static page can render. */ }
+  };
   selectTab(0);
   tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => selectChapter(sceneIds[index][0], true));
+    tab.addEventListener('click', () => { if (currentTab !== index) selectTab(index); });
     tab.addEventListener('keydown', (event) => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? 3 :
-        (index + (event.key === 'ArrowRight' ? 1 : -1) + 4) % 4;
-      tabs[next].focus({ preventScroll: true }); tabs[next].click();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? 3 : (index + (event.key === 'ArrowRight' ? 1 : -1) + 4) % 4;
+      tabs[next].focus({ preventScroll: true }); selectTab(next);
     });
   });
-  playButton?.addEventListener('click', async () => {
-    paused = Boolean(tour && !tour.paused);
-    if (!paused) {
-      segmentEnd = null;
-      try { await prepareTour(); } catch { paused = true; }
-    }
-    syncTour();
-  });
-  description?.addEventListener('keydown', (event) => {
-    if (event.key === 'Tab') { paused = true; syncTour(); }
-  });
 
-  // The three theme screens keep one clock and stop together when one cannot render.
   const themePanel = document.querySelector('.detail-row__visual--theme');
   const themePoints = document.querySelector('[data-theme-points]');
   const themeButton = document.querySelector('[data-theme-play]');
@@ -296,114 +255,52 @@
     { id: 'floating', label: '悬浮底栏' }, { id: 'style', label: '底栏样式' },
     { id: 'blur', label: '模糊效果' }, { id: 'back', label: '预测性返回' },
   ];
-  let themeVideos = [];
-  let themeIndex = -1;
   let themeRequest = 0;
-  let themePaused = reducedMotion.matches;
-  let themeBusy = false;
-  let themeBuffering = false;
-  let themeManual = false;
-  const syncTheme = () => {
-    const playing = themeVisibility.visible && !document.hidden && !themePaused && !themeBusy && !themeBuffering;
-    themeVideos.forEach((video) => {
-      if (playing) video.play().catch((error) => {
-        if (error.name === 'AbortError' || !themeVisibility.visible || document.hidden || themeBusy) return;
-        themePaused = true; syncTheme();
-      });
-      else video.pause();
-    });
-    setPlayIcon(themeButton, !playing || !themeVideos.length);
-  };
-  const loadTheme = (index) => Promise.all([
-    loadVideo(`settings-${themeScenes[index].id}`, '主题设置演示'),
-    ...['light', 'dark'].map((mode) => loadVideo(`effect-${themeScenes[index].id}-${mode}`, '主题效果演示')),
-  ]);
-  const selectTheme = async (startIndex, manual = false) => {
+  const themePlayer = makePlayer([themePanel, themePoints], themeButton,
+    (value) => themePoints.querySelector('.is-active')?.style.setProperty('--progress', value));
+  // The group owns the three videos; their sources and decoders are released together.
+  themeButton.parentElement.hidden = false; themeButton.hidden = true;
+  const themeSources = (index) => [
+    { id: `settings-${themeScenes[index].id}`, selector: '[data-theme-image]', label: `主题设置：${themeScenes[index].label}` },
+    ...['light', 'dark'].map((mode) => ({ id: `effect-${themeScenes[index].id}-${mode}`,
+      selector: `[data-theme-effect="${mode}"]`, label: `${themeScenes[index].label}：${mode === 'light' ? '浅色' : '深色'}界面` })),
+  ].map((source) => ({ src: `assets/demos/${source.id}.mp4`, label: source.label,
+    image: { src: `assets/demos/${source.id}.webp`, alt: source.label }, target: () => document.querySelector(source.selector) }));
+  const selectTheme = async (index) => {
     const token = ++themeRequest;
-    themeBusy = true; syncTheme();
-    for (let offset = 0; offset < themeScenes.length; offset++) {
-      const index = (startIndex + offset) % themeScenes.length;
-      try {
-        const videos = await loadTheme(index);
-        if (token !== themeRequest) return;
-        await Promise.all(videos.map((video) => seek(video, reducedMotion.matches ? 2.8 : 0)));
-        if (token !== themeRequest) return;
-        themeVideos.forEach((video) => video.pause());
-        const targets = [document.querySelector('[data-theme-image]'),
-          ...['light', 'dark'].map((mode) => document.querySelector(`[data-theme-effect="${mode}"]`))];
-        videos.forEach((video, position) => {
-          if (position === 0) video.dataset.themeImage = '';
-          else video.dataset.themeEffect = position === 1 ? 'light' : 'dark';
-          if (targets[position] !== video) targets[position].replaceWith(video);
-          if (!video.dataset.bound) {
-            video.dataset.bound = 'true';
-            video.addEventListener('waiting', () => {
-              if (themeVideos.includes(video)) { themeBuffering = true; syncTheme(); }
-            });
-            video.addEventListener('canplay', () => {
-              if (themeVideos.every((v) => v.readyState >= 3)) { themeBuffering = false; syncTheme(); }
-            });
-          }
-        });
-        themeVideos = videos; themeIndex = index; themeManual = manual;
-        themeBusy = false; themeBuffering = false;
-        if (manual) themePaused = reducedMotion.matches;
-        const master = videos[0];
-        master.ontimeupdate = () => {
-          if (master !== themeVideos[0]) return;
-          themePoints.querySelector('.is-active')?.style.setProperty('--progress', master.currentTime / master.duration);
-          themeVideos.slice(1).forEach((video) => {
-            if (Math.abs(video.currentTime - master.currentTime) > .12 && !video.seeking) video.currentTime = master.currentTime;
-          });
-        };
-        master.onended = () => {
-          if (master !== themeVideos[0]) return;
-          if (themeManual) { themePaused = true; syncTheme(); }
-          else if (themeVisibility.visible && !themePaused) selectTheme((index + 1) % 4);
-        };
-        themePoints.querySelectorAll('button').forEach((button, i) => {
-          button.classList.toggle('is-active', index === i);
-          button.setAttribute('aria-pressed', String(index === i));
-          button.style.setProperty('--progress', 0);
-        });
-        document.querySelector('[data-theme-controls]').hidden = false;
-        syncTheme();
-        if (themeVisibility.visible && !themePaused) loadTheme((index + 1) % 4).catch(() => {});
-        return;
-      } catch { /* Skip missing scenes without showing a failure message. */ }
-    }
-    if (token === themeRequest) { themeBusy = false; syncTheme(); }
+    themePlayer.stop();
+    const playbackVersion = themePlayer.version;
+    themePoints.querySelectorAll('button').forEach((button, position) => {
+      button.classList.toggle('is-active', index === position);
+      button.setAttribute('aria-pressed', String(index === position));
+    });
+    const sources = themeSources(index);
+    try {
+      const images = await Promise.all(sources.map((source) => loadImage(source.image)));
+      if (token !== themeRequest) return;
+      images.forEach((image, position) => replaceStill(sources[position].target(), image));
+    } catch { /* All three static screens remain visible if loading is interrupted. */ }
+    if (token === themeRequest && playbackVersion === themePlayer.version) themePlayer.start(sources);
   };
-  const themeVisibility = watchPlayer([themePanel, themePoints], () => {
-    if (!themeVideos.length) selectTheme(0);
-    else if (themeVideos[0].ended && !themePaused) selectTheme((themeIndex + 1) % 4);
-    else syncTheme();
-  }, syncTheme);
-  themePoints?.replaceChildren(...themeScenes.map((scene, index) => {
+  themePoints.replaceChildren(...themeScenes.map((scene, index) => {
     const li = document.createElement('li');
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'screen-point'; button.textContent = scene.label;
     button.setAttribute('aria-pressed', 'false');
-    button.addEventListener('click', () => selectTheme(index, true));
+    button.addEventListener('click', () => selectTheme(index));
     li.append(button); return li;
   }));
-  themeButton?.addEventListener('click', () => {
-    themePaused = Boolean(themeVideos[0] && !themeVideos[0].paused);
-    if (!themePaused && themeVideos[0]?.ended) selectTheme(themeIndex);
-    else syncTheme();
-  });
 
-  reducedMotion.addEventListener('change', () => {
-    if (reducedMotion.matches) { paused = true; themePaused = true; syncTour(); syncTheme(); }
-  });
-  // Warm the one continuous movie near the section; loading never starts playback.
-  if ('IntersectionObserver' in window && panel) {
-    const preloadObserver = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        prepareTour().catch(() => {}); preloadObserver.disconnect();
-      }
+  // Warm only still images near the modules. Browsing never requests an MP4.
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.filter((entry) => entry.isIntersecting).forEach(({ target }) => {
+        const images = target === panel ? tabs.map((_, index) => pageImage(index)) : themeScenes.flatMap((_, index) => themeSources(index).map((source) => source.image));
+        images.forEach((source) => loadImage(source).catch(() => {})); observer.unobserve(target);
+      });
     }, { rootMargin: '300px' });
-    preloadObserver.observe(panel);
+    observer.observe(panel); observer.observe(themePanel);
   }
+  reducedMotion.addEventListener('change', () => { pagePlayer.stop(); themePlayer.stop(); });
   scheduleVisibility();
 })();
