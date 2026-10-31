@@ -18,6 +18,8 @@ SCENES = {
        for prefix, suffix in [("settings", ""), ("effect", "-light"), ("effect", "-dark")]},
 }
 
+THEME_ENDS = {"floating": 35, "style": 55, "blur": 60, "back": 149}
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -26,6 +28,7 @@ def main():
     parser.add_argument("--scene", choices=SCENES, action="append")
     parser.add_argument("--tour", action="store_true", help="Encode the continuous native tour and its chapters.")
     parser.add_argument("--theme-only", action="store_true", help="Encode only the three-screen theme scenes.")
+    parser.add_argument("--showcase-only", action="store_true", help="Encode short, manually selected page demonstrations.")
     parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[1] / "assets" / "demos")
     args = parser.parse_args()
     if not args.ffmpeg:
@@ -53,12 +56,18 @@ def main():
         print(json.dumps({"tour": metadata, "bytes": (args.output / "tour.mp4").stat().st_size}, indent=2))
         return
     report = []
-    scenes = args.scene or [name for name in SCENES if not args.theme_only or name.startswith(("settings-", "effect-"))]
+    scenes = args.scene or [name for name in SCENES
+                           if (not args.theme_only or name.startswith(("settings-", "effect-")))
+                           and (not args.showcase_only or not name.startswith(("settings-", "effect-", "payment-qr", "payment-barcode")))]
     for scene in scenes:
         count = SCENES[scene]
         frames = [args.frames / scene / f"{index:04d}.png" for index in range(count)]
         if not all(frame.is_file() for frame in frames):
             raise RuntimeError(f"Incomplete native capture: {scene}")
+        theme = scene.startswith(("settings-", "effect-"))
+        if theme:
+            # Stop at the demonstrated preference, then hold it instead of toggling back.
+            frames = frames[:THEME_ENDS[scene.split("-")[1]] + 1]
         # Extend the fully opened interface so its details remain readable.
         hold_at = 93 if scene == "mine-theme" else count - 21
         movie = args.output / f"{scene}.mp4"
@@ -71,18 +80,37 @@ def main():
             for index, frame in enumerate(frames):
                 data = frame.read_bytes()
                 process.stdin.write(data)
-                if index == hold_at and not scene.startswith(("settings-", "effect-")):
+                if (theme and index == len(frames) - 1) or (not theme and index == hold_at):
                     process.stdin.write(data * 20)
         finally:
             process.stdin.close()
         if process.wait() != 0:
             raise RuntimeError(f"Encoding failed: {scene}")
         # A settled native image is also available before video playback.
-        poster = frames[0 if scene.startswith(("settings-", "effect-")) else 93 if scene == "mine-theme" else min(37, hold_at)]
+        poster = frames[-1] if theme else frames[93 if scene == "mine-theme" else min(37, hold_at)]
         with Image.open(poster) as image:
             image.save(args.output / f"{scene}.webp", lossless=True, method=6)
-        duration = count / 20 if scene.startswith(("settings-", "effect-")) else (count + 20) / 20
+        duration = (len(frames) + 20) / 20
         report.append({"scene": scene, "duration": duration, "bytes": movie.stat().st_size})
+    if args.showcase_only:
+        # Dual codes are a still image. The enlargement action shows both native sheets.
+        movie = args.output / "payment-enlarge.mp4"
+        process = subprocess.Popen([args.ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                                    "-f", "image2pipe", "-framerate", "20", "-vcodec", "png", "-i", "pipe:0",
+                                    "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
+                                    "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(movie)], stdin=subprocess.PIPE)
+        try:
+            for scene in ("payment-qr", "payment-barcode"):
+                for index in range(SCENES[scene]):
+                    frame = args.frames / scene / f"{index:04d}.png"
+                    process.stdin.write(frame.read_bytes())
+        finally:
+            process.stdin.close()
+        if process.wait() != 0:
+            raise RuntimeError("Encoding failed: payment-enlarge")
+        with Image.open(args.frames / "payment-qr" / "0000.png") as image:
+            image.save(args.output / "payment-enlarge.webp", lossless=True, method=6)
+        report.append({"scene": "payment-enlarge", "duration": 6.2, "bytes": movie.stat().st_size})
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
