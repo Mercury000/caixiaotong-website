@@ -7,7 +7,9 @@
   <meta name="description" content="财小通——为河南财经政法大学打造的校园一卡通 Android 客户端。付款、缴费、账单与校园卡管理，一站完成。">
   <title>财小通 · 校园生活，一触即达</title>
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <script src="site-theme.js"></script>
   <link rel="stylesheet" href="styles.css">
+  <script src="media-ready.js" defer></script>
   <script src="script.js" defer></script>
   <script src="demo-player.js" defer></script>
   <script src="promo-player.js" defer></script>
@@ -24,7 +26,7 @@
     <div class="nav-backdrop" data-nav-backdrop aria-hidden="true"></div>
     <nav class="nav shell" aria-label="主导航">
       <a class="brand" href="#top" aria-label="财小通首页">
-        <img src="assets/logo.svg" width="38" height="38" alt="">
+        <span class="media-logo" style="--logo-size: 38px"><img data-media-image src="assets/logo.svg" width="38" height="38" alt=""></span>
         <span>财小通</span>
       </a>
       <div class="nav__links" id="nav-links" aria-label="页面导航">
@@ -33,16 +35,22 @@
         <a href="#privacy">隐私</a>
         <a href="https://github.com/Mercury000/HUEL-yktwx" target="_blank" rel="noreferrer">源码</a>
       </div>
+      <div class="nav__actions">
       <a class="button button--compact button--dark" href="#download">
         下载
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 16h12"/></svg>
       </a>
+      <button class="theme-toggle" type="button" data-site-theme aria-label="切换深色模式" title="切换深色模式">
+        <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.2A8.5 8.5 0 0 1 8.8 3.8 8.5 8.5 0 1 0 20.2 15.2Z"/></svg>
+        <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
+      </button>
       <button class="nav__toggle" type="button" aria-label="打开导航" aria-expanded="false" aria-controls="nav-links" data-nav-toggle>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path class="nav__toggle-line nav__toggle-line--top" d="M5 8h14"/>
           <path class="nav__toggle-line nav__toggle-line--bottom" d="M5 16h14"/>
         </svg>
       </button>
+      </div>
     </nav>
   </header>
 
@@ -77,8 +85,12 @@
           <span><small>本月支出</small><strong>清晰掌握</strong></span>
         </div>
         <div class="phone phone--hero">
+          <div class="screen-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i><span><b></b><b></b><b></b><b></b></span></div>
           <div class="phone__speaker" aria-hidden="true"></div>
-          <img src="assets/payment-light.webp" srcset="assets/payment-light.webp 480w, assets/payment-light@2x.webp 960w" sizes="(max-width: 760px) 220px, 286px" width="480" height="1041" fetchpriority="high" alt="财小通付款页面">
+          <picture data-theme-picture>
+            <source media="(prefers-color-scheme: dark)" srcset="assets/payment-dark.webp 480w, assets/payment-dark@2x.webp 960w" sizes="(max-width: 760px) 220px, 286px">
+            <img data-media-image src="assets/payment-light.webp" srcset="assets/payment-light.webp 480w, assets/payment-light@2x.webp 960w" sizes="(max-width: 760px) 220px, 286px" width="480" height="1041" fetchpriority="high" alt="财小通付款页面">
+          </picture>
           <span class="phone__shine" aria-hidden="true"></span>
         </div>
         <div class="float-chip float-chip--bottom" aria-hidden="true">
@@ -92,23 +104,23 @@
 
     <section class="showcase" id="experience">
       <div class="shell showcase__inner">
-        <div class="showcase__copy reveal">
-          <div class="showcase__heading">
+        <div class="showcase__copy">
+          <div class="showcase__heading reveal">
             <span class="kicker">看看你每天会用的界面</span>
             <h2>四个页面，<br>照顾校园日常。</h2>
             <p class="showcase__intro">从食堂付款到宿舍缴费，常用入口都在熟悉的位置。</p>
           </div>
-          <div class="showcase-tabs" role="tablist" aria-label="应用界面预览">
-            <button class="showcase-tab is-active" id="tab-payment" type="button" role="tab" aria-selected="true" aria-controls="screen-panel" tabindex="0" data-screen="payment-light" data-label="付款页面" data-title="打开就能付，余额随手看。" data-description="条形码和二维码同屏展示，轻触即可放大。查看校园卡余额，也能直接为自己充值。" data-points="双码展示|轻触放大|余额与充值">付款</button>
+          <div class="showcase-tabs reveal reveal--delay-1" role="tablist" aria-label="应用界面预览">
+            <button class="showcase-tab is-active" id="tab-payment" type="button" role="tab" aria-selected="true" aria-controls="screen-panel" tabindex="0" data-screen="payment-light" data-label="付款页面" data-title="打开就能付，余额随手看。" data-description="条码与二维码同屏展示，轻触即可放大。完整号码按需查看，也能直接查询余额与充值。" data-points="号码保护|轻触放大|余额与充值">付款</button>
             <button class="showcase-tab" id="tab-hall" type="button" role="tab" aria-selected="false" aria-controls="screen-panel" tabindex="-1" data-screen="hall-light" data-label="大厅页面" data-title="宿舍水电，随时心中有数。" data-description="查看绑定房间的剩余电量，在同一处完成水电、校园网缴费和代人充值。" data-points="房间管理|水电缴费|校园网充值">大厅</button>
             <button class="showcase-tab" id="tab-bill" type="button" role="tab" aria-selected="false" aria-controls="screen-panel" tabindex="-1" data-screen="bill-light" data-label="账单页面" data-title="每一笔花销，都有迹可循。" data-description="按日期查看交易明细，搜索和筛选具体记录，再用趋势与分类了解消费去向。" data-points="搜索筛选|交易明细|消费统计">账单</button>
             <button class="showcase-tab" id="tab-mine" type="button" role="tab" aria-selected="false" aria-controls="screen-panel" tabindex="-1" data-screen="mine-light" data-label="我的页面" data-title="校园卡与个人设置，一处打理。" data-description="查看卡片状态和本月收支，管理查询密码、挂失与解挂，也能换上自己的头像。" data-points="账户详情|个人资料|个人设置">我的</button>
           </div>
-          <div class="showcase-description" data-showcase-description>
+          <div class="showcase-description reveal reveal--delay-2" data-showcase-description>
             <h3 data-screen-title>打开就能付，余额随手看。</h3>
-            <p data-screen-description>条形码和二维码同屏展示，轻触即可放大。查看校园卡余额，也能直接为自己充值。</p>
+            <p data-screen-description>条码与二维码同屏展示，轻触即可放大。完整号码按需查看，也能直接查询余额与充值。</p>
             <div class="showcase-actions">
-              <ul class="screen-points" data-screen-points><li>双码展示</li><li>轻触放大</li><li>余额与充值</li></ul>
+              <ul class="screen-points" data-screen-points><li>号码保护</li><li>轻触放大</li><li>余额与充值</li></ul>
               <button type="button" class="demo-control" data-demo-play aria-label="播放演示" title="播放演示" hidden>
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 8 6-8 6z"/></svg>
               </button>
@@ -119,8 +131,9 @@
           <span class="stage-orbit stage-orbit--one" aria-hidden="true"></span>
           <span class="stage-orbit stage-orbit--two" aria-hidden="true"></span>
           <div class="phone phone--showcase">
+            <div class="screen-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i><span><b></b><b></b><b></b><b></b></span></div>
             <div class="phone__speaker" aria-hidden="true"></div>
-            <img data-showcase-image src="assets/payment-light.webp" srcset="assets/payment-light.webp 480w, assets/payment-light@2x.webp 960w" sizes="(max-width: 760px) 250px, 285px" width="480" height="1041" loading="lazy" decoding="async" alt="财小通付款页面">
+            <img data-media-image data-showcase-image src="assets/payment-light.webp" srcset="assets/payment-light.webp 480w, assets/payment-light@2x.webp 960w" sizes="(max-width: 760px) 250px, 285px" width="480" height="1041" loading="lazy" decoding="async" alt="财小通付款页面">
             <span class="phone__shine" aria-hidden="true"></span>
           </div>
         </div>
@@ -231,16 +244,11 @@
     </section>
 
     <section class="details section shell">
-      <div class="detail-row detail-row--theme reveal" id="theme">
-        <div class="detail-row__visual detail-row__visual--theme">
-          <figure class="theme-preview theme-preview--dark">
-            <img data-theme-effect="dark" src="assets/demos/effect-floating-dark.webp" width="576" height="1248" loading="lazy" decoding="async" alt="悬浮底栏设置后的深色界面">
-          </figure>
-          <figure class="theme-preview theme-preview--light">
-            <img data-theme-effect="light" src="assets/demos/effect-floating-light.webp" width="576" height="1248" loading="lazy" decoding="async" alt="悬浮底栏设置后的浅色界面">
-          </figure>
-          <figure class="theme-preview theme-preview--settings">
-            <img data-theme-image src="assets/demos/settings-floating.webp" width="576" height="1248" loading="lazy" decoding="async" alt="主题设置">
+      <div class="detail-row detail-row--theme" id="theme">
+        <div class="detail-row__visual detail-row__visual--theme reveal reveal--delay-1">
+          <figure class="theme-preview">
+            <div class="screen-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i><span><b></b><b></b><b></b><b></b></span></div>
+            <img data-media-image data-theme-image src="assets/demos/theme-bar-floating-plain-light.webp" width="576" height="1248" loading="lazy" decoding="async" alt="默认悬浮底栏效果">
           </figure>
           <div class="theme-controls" data-theme-controls hidden>
             <button type="button" class="demo-control" data-theme-play aria-label="暂停主题演示" title="暂停主题演示">
@@ -248,20 +256,28 @@
             </button>
           </div>
         </div>
-        <div class="detail-row__copy">
+        <div class="detail-row__copy reveal">
           <span class="kicker">你的风格</span>
           <h2>顺手的界面，<br>由你来定。</h2>
-          <p>悬浮底栏、导航样式与背景模糊，按你的习惯调整。预测性返回跟随手势，提前看见上一页。</p>
-          <ul class="screen-points theme-points" data-theme-points aria-label="主题设置"></ul>
+          <p>底栏贴底或悬浮，样式与顶栏、底栏模糊自由搭配。滑动内容、返回上一页，直接看看组合后的效果。</p>
+          <div class="theme-options" data-theme-points role="group" aria-label="界面效果">
+            <div class="theme-toggles" role="group" aria-label="可叠加的界面选项">
+              <button type="button" class="theme-option" data-bar-position aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="4"/><path d="M7 13h6"/></svg>悬浮底栏</button>
+              <button type="button" class="theme-option" data-bar-style="ios" data-floating-style aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="6" width="16" height="8" rx="4"/><path d="M6 10h.01M10 10h.01M14 10h.01"/></svg>iOS 样式</button>
+              <button type="button" class="theme-option" data-bar-blur aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8" cy="10" r="5"/><circle cx="12" cy="10" r="5"/></svg>底栏模糊</button>
+              <button type="button" class="theme-option" data-bar-top-blur aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="4"/><path d="M6 7h8M7 10h6"/></svg>顶栏模糊</button>
+            </div>
+            <button type="button" class="theme-back" data-theme-back><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 13H8a4 4 0 0 1 0-8h3M8 2l-3 3 3 3"/></svg>预测性返回</button>
+          </div>
         </div>
       </div>
 
-      <div class="detail-row detail-row--reverse reveal" id="privacy">
-        <div class="detail-row__visual detail-row__visual--privacy" aria-hidden="true">
+      <div class="detail-row detail-row--reverse" id="privacy">
+        <div class="detail-row__visual detail-row__visual--privacy reveal" aria-hidden="true">
           <div class="lock-rings"><i></i><i></i><i></i></div>
           <svg viewBox="0 0 64 64"><rect x="14" y="27" width="36" height="28" rx="10"/><path d="M22 27v-7c0-6 4.5-11 10-11s10 5 10 11v7M32 37v8"/></svg>
         </div>
-        <div class="detail-row__copy">
+        <div class="detail-row__copy reveal reveal--delay-1">
           <span class="kicker">隐私优先</span>
           <h2>数据去向，<br>清楚明白。</h2>
           <p>一卡通业务数据直连官方服务，开发者不通过自建服务器中转或收集。登录凭据和业务缓存加密留在本机；使用微信支付时，必要的信息发送至支付服务。</p>
@@ -276,7 +292,7 @@
     <div class="download-section">
     <section class="cta shell reveal" id="download" aria-labelledby="download-title">
       <div class="cta__glow" aria-hidden="true"></div>
-      <img src="assets/logo.svg" width="78" height="78" alt="财小通图标">
+      <span class="media-logo" style="--logo-size: 78px"><img data-media-image src="assets/logo.svg" width="78" height="78" alt="财小通图标"></span>
       <span class="kicker">现在开始</span>
       <h2 id="download-title">让校园生活，简单一点。</h2>
       <p>v1.1.0 <span>·</span> Android 14 及以上 <span>·</span> 非官方客户端</p>
@@ -290,16 +306,16 @@
       </div>
     </section>
     <section class="getting-started shell" aria-label="安装与使用">
-      <div><span class="step-number">01</span><h3>选择正式安装包</h3><p>在发布页下载文件名带有 release 的 APK。</p></div>
-      <div><span class="step-number">02</span><h3>在 Android 手机上安装</h3><p>打开 APK，按系统提示允许本次安装。</p></div>
-      <div><span class="step-number">03</span><h3>使用本人校园卡登录</h3><p>阅读使用说明，输入学号或工号及查询密码。</p></div>
+      <div class="reveal"><span class="step-number">01</span><h3>选择正式安装包</h3><p>在发布页下载文件名带有 release 的 APK。</p></div>
+      <div class="reveal reveal--delay-1"><span class="step-number">02</span><h3>在 Android 手机上安装</h3><p>打开 APK，按系统提示允许本次安装。</p></div>
+      <div class="reveal reveal--delay-2"><span class="step-number">03</span><h3>使用本人校园卡登录</h3><p>阅读使用说明，输入学号或工号及查询密码。</p></div>
     </section>
     </div>
   </main>
 
   <footer class="footer shell">
     <div class="footer__brand">
-      <img src="assets/logo.svg" width="32" height="32" alt="">
+      <span class="media-logo" style="--logo-size: 32px"><img data-media-image src="assets/logo.svg" width="32" height="32" alt=""></span>
       <div><strong>财小通</strong><small>CaiXiaoTong</small></div>
     </div>
     <p>河南财经政法大学校园一卡通第三方客户端，不隶属于学校或一卡通服务提供方。</p>
@@ -313,7 +329,9 @@
     <button class="promo-dialog__close" type="button" data-promo-close aria-label="关闭视频" autofocus>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
     </button>
-    <video class="promo-dialog__video" data-promo-video data-src="assets/promo/intro.mp4" data-poster="assets/promo/intro.webp" controls playsinline preload="none" width="1920" height="1080" aria-label="财小通推广介绍"></video>
+    <div class="promo-media">
+      <video class="promo-dialog__video" data-promo-video data-src="assets/promo/intro.mp4" data-poster="assets/promo/intro.webp" controls playsinline preload="none" width="1920" height="1080" aria-label="财小通推广介绍"></video>
+    </div>
   </dialog>
 </body>
 </html>

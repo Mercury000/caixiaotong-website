@@ -3,10 +3,15 @@
   const dialog = document.querySelector('#promo-dialog');
   const video = document.querySelector('[data-promo-video]');
   const visibilityChanged = () => document.dispatchEvent(new Event('demo-visibility-change'));
+  video.addEventListener('loadeddata', () => video.classList.add('is-ready'));
+  video.addEventListener('error', () => video.classList.remove('is-ready'));
 
   opener?.addEventListener('click', () => {
     if (!video.hasAttribute('src')) {
       video.poster = video.dataset.poster;
+      const poster = new Image();
+      poster.src = video.dataset.poster;
+      poster.decode().then(() => { if (!video.error) video.classList.add('is-ready'); }).catch(() => {});
       video.src = video.dataset.src;
       video.load();
     }

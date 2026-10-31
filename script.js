@@ -56,15 +56,28 @@ if ('IntersectionObserver' in window && !prefersReducedMotion) {
 }
 
 if ('IntersectionObserver' in window && !prefersReducedMotion) {
+  const inset = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+  let revealScroll = scrollY;
+  let revealDirection = 1;
+  window.addEventListener('scroll', () => {
+    if (scrollY !== revealScroll) revealDirection = Math.sign(scrollY - revealScroll);
+    revealScroll = scrollY;
+  }, { passive: true });
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
+      if (!entry.isIntersecting || entry.intersectionRatio < .2 || entry.target.classList.contains('is-visible')) return;
+      entry.target.style.setProperty('--reveal-distance', revealDirection < 0 ? '-20px' : '28px');
       entry.target.classList.add('is-visible');
-      observer.unobserve(entry.target);
     });
-  }, { threshold: 0.12, rootMargin: '0px 0px -35px' });
+  }, { threshold: [0, .2], rootMargin: `-${inset + 24}px 0px -48px` });
+  // Reset only after the entire element leaves the reading area.
+  const resetObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) entry.target.classList.remove('is-visible');
+    });
+  }, { rootMargin: `-${inset}px 0px 0px` });
   document.documentElement.classList.add('motion-ready');
-  reveals.forEach((element) => observer.observe(element));
+  reveals.forEach((element) => { observer.observe(element); resetObserver.observe(element); });
 } else {
   reveals.forEach((element) => element.classList.add('is-visible'));
 }
