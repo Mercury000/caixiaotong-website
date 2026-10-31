@@ -1,0 +1,66 @@
+"""Encode native Compose PNG sequences into compact, browser-compatible demos."""
+
+import argparse
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+from PIL import Image
+
+SCENES = {
+    "payment-qr": 62, "payment-barcode": 62, "payment-recharge": 90,
+    "hall-electricity": 78, "hall-network": 66, "hall-rooms": 82,
+    "bill-stats": 82, "bill-filter": 66, "bill-date": 66,
+    "mine-profile": 66, "mine-account": 66, "mine-theme": 146,
+    **{f"{prefix}-{kind}{suffix}": count
+       for kind, count in {"floating": 90, "style": 130, "blur": 120, "back": 150}.items()
+       for prefix, suffix in [("settings", ""), ("effect", "-light"), ("effect", "-dark")]},
+}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("frames", type=Path)
+    parser.add_argument("--ffmpeg", default=shutil.which("ffmpeg"))
+    parser.add_argument("--scene", choices=SCENES, action="append")
+    parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[1] / "assets" / "demos")
+    args = parser.parse_args()
+    if not args.ffmpeg:
+        parser.error("Pass --ffmpeg with the path to ffmpeg.")
+    args.output.mkdir(parents=True, exist_ok=True)
+    report = []
+    for scene in args.scene or SCENES:
+        count = SCENES[scene]
+        frames = [args.frames / scene / f"{index:04d}.png" for index in range(count)]
+        if not all(frame.is_file() for frame in frames):
+            raise RuntimeError(f"Incomplete native capture: {scene}")
+        # Extend the fully opened interface so its details remain readable.
+        hold_at = 93 if scene == "mine-theme" else count - 21
+        movie = args.output / f"{scene}.mp4"
+        command = [args.ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                   "-f", "image2pipe", "-framerate", "20", "-vcodec", "png", "-i", "pipe:0",
+                   "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
+                   "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(movie)]
+        process = subprocess.Popen(command, stdin=subprocess.PIPE)
+        try:
+            for index, frame in enumerate(frames):
+                data = frame.read_bytes()
+                process.stdin.write(data)
+                if index == hold_at and not scene.startswith(("settings-", "effect-")):
+                    process.stdin.write(data * 20)
+        finally:
+            process.stdin.close()
+        if process.wait() != 0:
+            raise RuntimeError(f"Encoding failed: {scene}")
+        # A settled native image is also available before video playback.
+        poster = frames[0 if scene.startswith(("settings-", "effect-")) else 93 if scene == "mine-theme" else min(37, hold_at)]
+        with Image.open(poster) as image:
+            image.save(args.output / f"{scene}.webp", lossless=True, method=6)
+        duration = count / 20 if scene.startswith(("settings-", "effect-")) else (count + 20) / 20
+        report.append({"scene": scene, "duration": duration, "bytes": movie.stat().st_size})
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()
