@@ -98,7 +98,6 @@ const loadShowcaseImage = (tab) => {
 };
 
 const clearShowcaseLoading = () => {
-  tabs.forEach((tab) => tab.classList.remove('is-loading'));
   showcasePhone?.setAttribute('aria-busy', 'false');
   if (showcaseStatus) showcaseStatus.textContent = '';
 };
@@ -112,7 +111,6 @@ tabs.forEach((tab) => {
     clearShowcaseLoading();
     if (tab.classList.contains('is-active')) return;
 
-    tab.classList.add('is-loading');
     showcasePhone?.setAttribute('aria-busy', 'true');
     if (showcaseStatus) showcaseStatus.textContent = `正在加载${tab.dataset.label}…`;
 

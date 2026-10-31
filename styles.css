@@ -180,8 +180,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .showcase-tab { position: relative; min-width: 64px; height: 41px; padding: 0 14px; border: 0; border-radius: 14px; background: transparent; color: #6e7684; font: inherit; font-size: 13px; cursor: pointer; transition: background .35s var(--ease), color .35s, box-shadow .35s, transform .25s var(--spring); }
 .showcase-tab:active { transform: scale(.93); }
 .showcase-tab.is-active { color: #1d62dd; background: #fff; box-shadow: 0 7px 18px rgba(39,78,145,.12); font-weight: 700; }
-.showcase-tab.is-loading { color: #1d62dd; }
-.showcase-tab.is-loading::after { content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border: 1.5px solid rgba(29,98,221,.2); border-top-color: currentColor; border-radius: 50%; animation: orbit .7s linear infinite; }
 .showcase__copy .showcase-status { min-height: 20px; margin: 12px 0 0; color: #667084; font-size: 12px; line-height: 1.6; }
 .showcase__stage { position: relative; height: 720px; display: grid; place-items: center; }
 .showcase__stage::before { content: ""; position: absolute; width: 540px; height: 540px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #cddfff 55%, #b5d1ff 100%); box-shadow: 0 55px 100px rgba(47,94,169,.16); }
