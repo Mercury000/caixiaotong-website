@@ -92,10 +92,16 @@
 
   window.addEventListener('touchstart', (event) => {
     if (!enabled() || event.touches.length !== 1) { touchGesture = null; return; }
+    // A new touch takes control immediately, even while the previous page is settling.
+    if (moving) {
+      cancelAnimationFrame(animationFrame);
+      scrollTo({ top: scrollY, behavior: 'instant' });
+      moving = false;
+    }
     const finger = event.touches[0];
     touchGesture = { x: finger.clientX, y: finger.clientY, start: scrollY, delta: 0,
       previous: targetFor(-1) ?? scrollY, next: targetFor(1) ?? scrollY,
-      vertical: false, bypass: false, blocked: moving };
+      vertical: false, bypass: false };
   }, { passive: true });
   window.addEventListener('touchmove', (event) => {
     const gesture = touchGesture;
@@ -111,7 +117,6 @@
     }
     if (!event.cancelable) { gesture.bypass = true; return; }
     event.preventDefault();
-    if (gesture.blocked) return;
     gesture.delta = dy;
     // Follow the finger, then settle into one module on release without native momentum.
     scrollTo({ top: Math.min(gesture.next, Math.max(gesture.previous, gesture.start + dy)), behavior: 'instant' });
@@ -119,7 +124,7 @@
   const finishTouch = (cancelled) => {
     const gesture = touchGesture;
     touchGesture = null;
-    if (!gesture?.vertical || gesture.bypass || gesture.blocked) return;
+    if (!gesture?.vertical || gesture.bypass) return;
     const target = !cancelled && Math.abs(gesture.delta) >= 32 ?
       gesture.delta > 0 ? gesture.next : gesture.previous : gesture.start;
     scrollToTarget(target);
