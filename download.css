@@ -1,4 +1,4 @@
-.download-page { --download-accent: #eaf2ff; }
+.download-page { --download-accent: #eaf2ff; --search:#f7f7f8; --search-line:#dcdce2; }
 .download-page [hidden] { display: none !important; }
 .download-page button, .download-page input, .download-page select { font: inherit; }
 .download-page button { cursor: pointer; }
@@ -100,7 +100,7 @@
 .download-section-heading > p { margin: 0 0 4px; color: var(--muted); font-size: 12px; line-height: 1.8; }
 .download-section-heading h2 > span { display: inline-block; margin-left: 12px; color: var(--muted); font-size: 12px; font-weight: 400; letter-spacing: 0; }
 .history-toolbar { display: flex; align-items: center; gap: 14px; justify-content: space-between; margin-bottom: 24px; }
-.history-search { display: flex; align-items: center; gap: 10px; width: min(420px, 100%); padding: 0 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); transition: border-color .2s; }
+.history-search { display: flex; align-items: center; gap: 10px; width: min(420px, 100%); padding: 0 16px; border-radius: 16px; background:var(--search); border:1px solid var(--search-line); transition:border-color .2s; }
 .history-search:has(input:focus) { border-color: var(--blue); }
 .history-search > svg { width: 18px; height: 18px; color: var(--muted); flex: 0 0 auto; }
 .history-search input { min-width: 0; width: 100%; min-height: 50px; background: transparent; color: var(--ink); border: 0; font-size: 13px; }
@@ -175,7 +175,7 @@ html.is-download-dialog-open, html.is-download-dialog-open body { overflow: hidd
 .download-dialog__body li + li { margin-top: 12px; }
 [data-theme="dark"] .download-dialog::backdrop { background: #0005; }
 @keyframes notes-arrive { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:none; } }
-[data-theme="dark"] .download-page { --download-accent: #253954; }
+[data-theme="dark"] .download-page { --download-accent: #253954; --search:#202733; --search-line:#424b59; }
 [data-theme="dark"] .download-intro h1 span { background-image: linear-gradient(105deg, #7aafff, #83beff 65%, #70d0db); }
 [data-theme="dark"] .download-visual { background: linear-gradient(145deg, #1d2b43, #243e60 55%, #223e4e); border-color: var(--line); }
 [data-theme="dark"] .download-visual::before { border-color: #ffffff10; box-shadow: 0 0 0 35px #ffffff04, 0 0 0 70px #ffffff03; }
