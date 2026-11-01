@@ -45,6 +45,27 @@ document.addEventListener('keydown', (event) => {
 });
 mobileNavigation.addEventListener('change', () => setNavigationOpen(false));
 
+// Older browsers keep ordinary navigation, with the same brief fade on departure.
+if (!('onpageswap' in window) && !prefersReducedMotion) {
+  let leavingPage = false;
+  let departure;
+  document.addEventListener('click', async (event) => {
+    const link = event.target.closest('a[href]');
+    if (!link || event.defaultPrevented || matchMedia('(prefers-reduced-motion: reduce)').matches || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+    const destination = new URL(link.href, location.href);
+    if (destination.origin !== location.origin || destination.pathname === location.pathname || !/\/(?:index|download)\.html$/.test(destination.pathname)) return;
+    const main = document.querySelector('main');
+    if (!main?.animate) return;
+    event.preventDefault();
+    if (leavingPage) return;
+    leavingPage = true;
+    departure = main.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'ease-out', fill: 'forwards' });
+    try { await departure.finished; } catch { return; }
+    location.assign(destination.href);
+  });
+  window.addEventListener('pageshow', () => { departure?.cancel(); leavingPage = false; });
+}
+
 const featureCards = document.querySelectorAll('.feature-card');
 if ('IntersectionObserver' in window && !prefersReducedMotion) {
   const featureObserver = new IntersectionObserver((entries) => {

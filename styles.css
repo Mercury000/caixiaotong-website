@@ -408,13 +408,22 @@ canvas.screen-overlay { will-change: transform; }
 .footer__links a { transition: color .2s; }
 .footer__links a:hover { color: var(--ink); }
 
-.entrance-ready .hero .reveal, .motion-ready .reveal { opacity: 0; }
+.entrance-ready .hero .reveal, .entrance-ready .download-intro .reveal, .entrance-ready .download-hero > .reveal, .motion-ready .reveal { opacity: 0; }
 .reveal--delay-1 { --reveal-delay: .1s; }
 .reveal--delay-2 { --reveal-delay: .2s; }
 .reveal--delay-3 { --reveal-delay: .3s; }
 .reveal--delay-4 { --reveal-delay: .4s; }
 .motion-ready .reveal.is-visible { opacity: 1; animation: reveal-in .85s cubic-bezier(.22, .61, .36, 1) var(--reveal-delay, 0s) backwards; }
 @keyframes reveal-in { from { opacity: 0; transform: translateY(var(--reveal-distance, 28px)); } to { opacity: 1; transform: translateY(0); } }
+
+@view-transition { navigation: auto; }
+.site-header { view-transition-name: site-header; }
+::view-transition-old(root) { animation: page-leave .2s ease-out both; }
+::view-transition-new(root) { animation: page-arrive .32s var(--ease) both; }
+::view-transition-old(site-header), ::view-transition-new(site-header) { animation: none; }
+::view-transition-group(site-header) { animation-duration: 0s; }
+@keyframes page-leave { to { opacity: 0; } }
+@keyframes page-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 @keyframes halo-breathe { 0%,100% { transform: scale(.96); opacity: .65; } 50% { transform: scale(1.04); opacity: .9; } }
 @keyframes float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-12px) rotate(1deg); } }
@@ -829,10 +838,11 @@ canvas.screen-overlay { will-change: transform; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
   html { scroll-behavior: auto; scroll-snap-type: none; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .nav-backdrop, .nav__links, .nav__links a { transition-delay: 0s !important; }
-  .entrance-ready .hero .reveal, .motion-ready .reveal, .motion-ready .reveal.is-visible { opacity: 1; transform: none; animation: none; }
+  .entrance-ready .hero .reveal, .entrance-ready .download-intro .reveal, .entrance-ready .download-hero > .reveal, .motion-ready .reveal, .motion-ready .reveal.is-visible { opacity: 1; transform: none; animation: none; }
   .feature-motion * { animation: none !important; }
   .demo-scan, .demo-tap, .demo-secure-dot { opacity: 0; }
   .demo-payment-check, .demo-charge-check { opacity: 1; }
