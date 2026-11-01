@@ -135,7 +135,6 @@
     get('size').textContent = size(asset.sizeBytes);
     get('system').textContent = system(asset.minSdk ?? latestRelease.minSdk);
     get('filename').textContent = asset.name;
-    get('abis').textContent = asset.abis?.length ? asset.abis.join(' · ') : '通用安装包';
     get('package').textContent = asset.packageName || '未提供';
     get('sha').textContent = asset.sha256 || '未提供';
     get('copy-sha').hidden = !asset.sha256;
