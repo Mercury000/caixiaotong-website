@@ -55,16 +55,17 @@
 .download-primary__format { margin-left: auto; border-left: 1px solid #ffffff40; padding-left: 14px; font-size: 11px; font-weight: 450; }
 .download-filename { margin: 12px 0 0; text-align: center; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; line-height: 1.7; }
 .device-hint { font-size: 12px; color: var(--muted); line-height: 1.8; padding: 12px 14px; background: var(--download-accent); border-radius: 12px; }
-.package-details { margin-top: 12px; }
+.package-link { align-self:center; margin-top:8px; }
 .download-page summary { cursor: pointer; min-height: 44px; }
-.package-details > summary { text-align: center; font-size: 11px; color: var(--muted); padding: 14px 0; list-style: none; }
-.package-details > summary::after { content: " +"; }
-.package-details[open] > summary::after { content: " −"; }
-.package-meta { font-size: 11px; margin: 4px 0 20px; padding: 16px; background: var(--page); border-radius: 14px; }
-.package-meta > div + div { margin-top: 13px; }
-.package-meta dt { color: var(--muted); }
-.package-meta dd { margin: 5px 0 0; line-height: 1.8; overflow-wrap: anywhere; }
-.package-meta code { display: block; font-size: 11px; word-break: break-all; user-select: all; }
+.package-meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; margin:0; }
+.package-meta > div { min-width:0; }
+.package-meta dt { color:var(--muted); font-size:12px; }
+.package-meta dd { margin:8px 0 0; font-size:14px; line-height:1.8; overflow-wrap:anywhere; }
+.package-meta .package-checksum { grid-column:1/-1; padding-top:20px; border-top:1px solid var(--line); }
+.package-meta code { display:block; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:var(--surface); font-size:12px; line-height:1.9; word-break:break-all; user-select:all; }
+.package-copy-state { margin:0; font-size:12px; color:var(--blue-deep); }
+.package-copy-state:empty { display:none; }
+.history-package-link { margin-top:4px; min-height:36px; }
 .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--blue-deep); min-height: 44px; padding: 0; border: 0; background: transparent; font-size: 12px !important; }
 .text-button svg { width: 15px; height: 15px; }
 .latest-notes { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 650; }
@@ -122,7 +123,6 @@
 .history-highlights li::before { content: ""; position: absolute; left: 0; top: .72em; width: 4px; height: 4px; border-radius: 50%; background: var(--blue); }
 .history-highlights li + li { margin-top: 7px; }
 .history-empty-notes { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
-.package-details summary::-webkit-details-marker { display: none; }
 .history-assets { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 16px; }
 .history-asset { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .history-asset + .history-asset { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -142,9 +142,10 @@
 .install-grid p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.9; }
 .install-grid .text-button { align-self: flex-start; margin-top: auto; padding-top: 8px; }
 .faq-section { padding: 72px 0 64px; }
-.faq-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 18px; }
-.faq-list details { min-width: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; }
-.faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 112px; padding: 26px; font-size: 16px; font-weight: 600; letter-spacing: -.02em; line-height: 1.7; list-style: none; }
+.faq-list { overflow:hidden; background:var(--surface); border:1px solid var(--line); border-radius:22px; }
+.faq-list details { min-width:0; overflow:hidden; }
+.faq-list details + details { border-top:1px solid var(--line); }
+.faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 80px; padding: 20px 26px; font-size: 16px; font-weight: 600; letter-spacing: -.02em; line-height: 1.7; list-style: none; }
 .faq-list summary::-webkit-details-marker { display: none; }
 .faq-list summary svg { flex: 0 0 32px; width: 32px; height: 32px; padding: 7px; border-radius: 10px; background: var(--download-accent); color: var(--blue-deep); }
 .faq-list summary:hover svg { background: var(--page); }
@@ -155,23 +156,25 @@
 .faq-list p { font-size: 12px; line-height: 1.9; color: var(--muted); padding: 0 26px 26px; margin: 0; }
 .download-feedback { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 80; margin: 0; max-width: calc(100% - 32px); width: max-content; background: var(--ink); color: var(--page); border-radius: 14px; padding: 14px 20px; font-size: 12px; line-height: 1.7; box-shadow: 0 8px 32px #0002; }
 .download-feedback:empty { display: none; }
-html.is-notes-open, html.is-notes-open body { overflow: hidden; }
-.notes-dialog { width: min(680px, calc(100% - 48px)); max-width: none; max-height: min(760px, calc(100dvh - 80px)); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 24px; background: var(--page); color: var(--ink); overflow: hidden; box-shadow: 0 16px 60px #18213320; }
-.notes-dialog[open] { display: flex; flex-direction: column; animation: notes-arrive .16s ease-out; }
-.notes-dialog::backdrop { background: #10152224; }
-.notes-dialog__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex: 0 0 auto; padding: 26px 30px 22px; border-bottom: 1px solid var(--line); background: var(--page); }
-.notes-dialog__header h2 { margin: 8px 0; font-size: 25px; letter-spacing: -.04em; }
-.notes-dialog__header p { margin: 0; color: var(--muted); font-size: 12px; }
-.notes-dialog__close { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--muted); transition: color .16s; }
-.notes-dialog__close:hover { color: var(--ink); }
-.notes-dialog__close:focus-visible, .notes-dialog__body:focus-visible { outline: 2px solid var(--line); outline-offset: -3px; }
-.notes-dialog__close svg { width: 20px; height: 20px; }
-.notes-dialog__body { min-height: 0; padding: 20px 30px 28px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; font-size: 14px; }
-.notes-dialog__body > :first-child { margin-top: 0; }
-.notes-dialog__body > :last-child { margin-bottom: 0; }
-.notes-dialog__body li + li { margin-top: 12px; }
-[data-theme="dark"] .notes-dialog::backdrop { background: #0005; }
-@keyframes notes-arrive { from { opacity: 0; } to { opacity: 1; } }
+html.is-download-dialog-open, html.is-download-dialog-open body { overflow: hidden; }
+.download-dialog { width: min(680px, calc(100% - 48px)); max-width: none; max-height: min(760px, calc(100dvh - 80px)); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 24px; background: var(--page); color: var(--ink); overflow: hidden; box-shadow: 0 16px 60px #18213320; }
+.download-dialog[open] { display: flex; flex-direction: column; animation: notes-arrive .16s ease-out; }
+.download-dialog::backdrop { background: #10152224; }
+.download-dialog__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex: 0 0 auto; padding: 26px 30px 22px; border-bottom: 1px solid var(--line); background: var(--page); }
+.download-dialog__header > div { min-width:0; }
+.download-dialog__header h2 { margin: 8px 0; font-size: 25px; letter-spacing: -.04em; overflow-wrap:anywhere; }
+.download-dialog__header p { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap:anywhere; line-height:1.8; }
+.download-dialog__close { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 14px; background:var(--surface); color:var(--muted); transition:color .16s,background .16s,transform .2s; }
+.download-dialog__close:hover { color:var(--ink); background:var(--download-accent); }
+.download-dialog__close:active { transform:scale(.95); }
+.download-dialog__close:focus-visible, .download-dialog__body:focus-visible { outline: 2px solid var(--line); outline-offset: -3px; }
+.download-dialog__close svg { width: 20px; height: 20px; }
+.download-dialog__body { min-height: 0; padding: 20px 30px 28px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; font-size: 14px; }
+.download-dialog__body > :first-child { margin-top: 0; }
+.download-dialog__body > :last-child { margin-bottom: 0; }
+.download-dialog__body li + li { margin-top: 12px; }
+[data-theme="dark"] .download-dialog::backdrop { background: #0005; }
+@keyframes notes-arrive { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:none; } }
 [data-theme="dark"] .download-page { --download-accent: #253954; }
 [data-theme="dark"] .download-intro h1 span { background-image: linear-gradient(105deg, #7aafff, #83beff 65%, #70d0db); }
 [data-theme="dark"] .download-visual { background: linear-gradient(145deg, #1d2b43, #243e60 55%, #223e4e); border-color: var(--line); }
@@ -238,13 +241,12 @@ html.is-notes-open, html.is-notes-open body { overflow: hidden; }
   .install-grid article { padding: 22px; }
   .install-grid h3 { margin-top: 14px; }
   .faq-section { padding: 48px 0; }
-  .faq-list { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .faq-list summary { min-height: 88px; padding: 22px; font-size: 15px; }
   .faq-list p { padding: 0 22px 22px; }
-  .notes-dialog { width: calc(100% - 24px); max-height: calc(100dvh - 48px); border-radius: 22px; }
-  .notes-dialog__header { padding: 22px 22px 18px; }
-  .notes-dialog__header h2 { font-size: 23px; }
-  .notes-dialog__body { padding: 18px 22px 24px; font-size: 13px; }
+  .download-dialog { width: calc(100% - 24px); max-height: calc(100dvh - 48px); border-radius: 22px; }
+  .download-dialog__header { padding: 22px 22px 18px; }
+  .download-dialog__header h2 { font-size: 23px; }
+  .download-dialog__body { padding: 18px 22px 24px; font-size: 13px; }
 }
 @media (max-width: 360px) {
   .release-card { padding: 18px; }
@@ -268,9 +270,9 @@ html.is-notes-open, html.is-notes-open body { overflow: hidden; }
   .release-meta { padding-block: 12px; margin-bottom: 14px; }
   .download-primary { min-height: 50px; }
   .download-filename { margin-top: 8px; }
-  .package-details { margin-top: 8px; }
+  .package-link { margin-top:8px; }
   .latest-notes { margin-top: 4px; padding-top: 8px; }
   .download-phone { width: min(156px, calc((100svh - 400px) / 2.17)); }
   .release-state { min-height: 290px; }
 }
-@media (prefers-reduced-motion: reduce) { .notes-dialog[open], .release-card > [data-latest-content], .history-release { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .download-dialog[open], .release-card > [data-latest-content], .history-release { animation: none; } }

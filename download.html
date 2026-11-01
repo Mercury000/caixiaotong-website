@@ -59,7 +59,7 @@
           <a class="button button--primary download-primary" data-download-link><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></svg><span data-download-label>下载 Android 安装包</span><span class="download-primary__format">APK</span></a>
           <p class="download-filename" data-filename></p>
           <p class="device-hint" data-device-hint hidden></p>
-          <details class="package-details"><summary>安装包详情与校验</summary><dl class="package-meta"><div><dt>应用包名</dt><dd data-package></dd></div><div><dt>SHA-256</dt><dd><code data-sha></code><button class="text-button" type="button" data-copy-sha>复制校验值</button></dd></div></dl></details>
+          <button class="notes-link package-link" type="button" data-package-open aria-haspopup="dialog" aria-controls="package-dialog">安装包详情与校验<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></button>
           <div class="latest-notes"><span>本次更新了什么</span><button class="notes-link" type="button" data-latest-notes-open aria-haspopup="dialog" aria-controls="release-notes-dialog">查看更新说明<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></button></div>
         </div>
       </div>
@@ -96,9 +96,15 @@
     <p class="download-feedback" data-feedback role="status" aria-live="polite"></p>
   </main>
   <footer class="footer shell" data-page-section><div class="footer__brand"><span class="media-logo" style="--logo-size: 32px"><img data-media-image src="assets/logo.svg" width="32" height="32" alt=""></span><div><strong>财小通</strong><small>CaiXiaoTong</small></div></div><p>河南财经政法大学校园一卡通第三方客户端，不隶属于学校或一卡通服务提供方。</p><div class="footer__links"><a href="index.html">首页</a><a href="https://github.com/Mercury000/HUEL-yktwx">GitHub</a><a href="https://github.com/Mercury000/HUEL-yktwx/blob/main/LICENSE">GPL-3.0</a></div></footer>
-  <dialog class="notes-dialog" id="release-notes-dialog" aria-labelledby="notes-dialog-title">
-    <header class="notes-dialog__header"><div><span class="section-label">更新说明</span><h2 id="notes-dialog-title" data-notes-title></h2><p data-notes-date></p></div><button class="notes-dialog__close" type="button" data-notes-close aria-label="关闭更新说明" autofocus><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></header>
-    <div class="notes-dialog__body release-notes" data-notes-body tabindex="0" role="region" aria-label="更新内容"></div>
+  <dialog class="download-dialog" id="release-notes-dialog" aria-labelledby="notes-dialog-title">
+    <header class="download-dialog__header"><div><span class="section-label">更新说明</span><h2 id="notes-dialog-title" data-notes-title></h2><p data-notes-date></p></div><button class="download-dialog__close" type="button" data-dialog-close aria-label="关闭更新说明" autofocus><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></header>
+    <div class="download-dialog__body release-notes" data-notes-body tabindex="0" role="region" aria-label="更新内容"></div>
+  </dialog>
+  <dialog class="download-dialog" id="package-dialog" aria-labelledby="package-dialog-title">
+    <header class="download-dialog__header"><div><span class="section-label">安装包详情与校验</span><h2 id="package-dialog-title" data-package-title></h2><p data-package-filename></p></div><button class="download-dialog__close" type="button" data-dialog-close aria-label="关闭安装包详情" autofocus><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></header>
+    <div class="download-dialog__body" tabindex="0" role="region" aria-label="安装包信息">
+      <dl class="package-meta"><div><dt>更新日期</dt><dd data-package-date></dd></div><div><dt>安装包大小</dt><dd data-package-size></dd></div><div><dt>系统要求</dt><dd data-package-system></dd></div><div><dt>应用包名</dt><dd data-package-name></dd></div><div class="package-checksum"><dt>SHA-256</dt><dd><code data-package-sha></code><button class="text-button" type="button" data-copy-sha>复制校验值</button><p class="package-copy-state" data-package-copy-state role="status" aria-live="polite"></p></dd></div></dl>
+    </div>
   </dialog>
 </body>
 </html>

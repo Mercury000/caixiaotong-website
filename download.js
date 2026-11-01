@@ -47,12 +47,13 @@
     get('feedback').textContent = message;
     feedbackTimer = setTimeout(() => { get('feedback').textContent = ''; }, 6000);
   };
-  const copy = async (text) => {
+  const copy = async (text, localStatus) => {
+    const report = (message) => { if (localStatus) localStatus.textContent = message; else feedback(message); };
     try {
       await navigator.clipboard.writeText(text);
-      feedback('已复制');
+      report('已复制');
     } catch {
-      feedback(`未能自动复制，请手动复制：${text}`);
+      report(localStatus ? '未能自动复制，请选中上方校验值手动复制。' : `未能自动复制，请手动复制：${text}`);
     }
   };
 
@@ -85,41 +86,65 @@
   };
 
   const notesDialog = document.getElementById('release-notes-dialog');
+  const packageDialog = document.getElementById('package-dialog');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  let notesOpener;
-  let notesAnimation;
+  const bindDialog = (dialog) => {
+    let opener;
+    let animation;
+    let pointerStartedOutside = false;
+    const close = () => {
+      if (!dialog.open || animation) return;
+      if (reducedMotion.matches) { dialog.close(); return; }
+      animation = dialog.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(8px)' }], { duration: 140, easing: 'ease-out' });
+      animation.finished.then(() => { animation = null; dialog.close(); }, () => { animation = null; });
+    };
+    const outside = (event) => {
+      const bounds = dialog.getBoundingClientRect();
+      return event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+    };
+    dialog.querySelector('[data-dialog-close]').addEventListener('click', close);
+    dialog.addEventListener('cancel', (event) => { event.preventDefault(); close(); });
+    dialog.addEventListener('pointerdown', (event) => { pointerStartedOutside = outside(event); });
+    dialog.addEventListener('click', (event) => {
+      if (pointerStartedOutside && outside(event)) close();
+      pointerStartedOutside = false;
+    });
+    dialog.addEventListener('close', () => {
+      animation?.cancel();
+      pointerStartedOutside = false;
+      document.documentElement.classList.remove('is-download-dialog-open');
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    });
+    return (trigger) => {
+      if (document.querySelector('.download-dialog[open]')) return;
+      opener = trigger;
+      dialog.showModal();
+      document.documentElement.classList.add('is-download-dialog-open');
+      dialog.querySelector('.download-dialog__body').scrollTop = 0;
+    };
+  };
+  const showNotes = bindDialog(notesDialog);
+  const showPackage = bindDialog(packageDialog);
   const openNotes = (release, opener) => {
-    if (!release || notesDialog.open) return;
-    notesOpener = opener;
+    if (!release || document.querySelector('.download-dialog[open]')) return;
     get('notes-title').textContent = `财小通 v${release.versionName}`;
     get('notes-date').textContent = date(release.publishedAt);
     renderNotes(get('notes-body'), release.notes);
-    notesDialog.showModal();
-    document.documentElement.classList.add('is-notes-open');
-    get('notes-body').scrollTop = 0;
+    showNotes(opener);
   };
-  const closeNotes = () => {
-    if (!notesDialog.open || notesAnimation) return;
-    if (reducedMotion.matches) { notesDialog.close(); return; }
-    notesAnimation = notesDialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'ease-out' });
-    notesAnimation.onfinish = () => { notesAnimation = null; notesDialog.close(); };
+  const openPackage = (release, asset, opener) => {
+    if (!release || !asset || document.querySelector('.download-dialog[open]')) return;
+    get('package-title').textContent = `财小通 v${release.versionName}`;
+    get('package-filename').textContent = asset.name;
+    get('package-date').textContent = date(release.publishedAt);
+    get('package-size').textContent = size(asset.sizeBytes);
+    get('package-system').textContent = system(asset.minSdk ?? release.minSdk);
+    get('package-name').textContent = asset.packageName || '未提供';
+    get('package-sha').textContent = asset.sha256 || '未提供';
+    get('copy-sha').hidden = !asset.sha256;
+    get('package-copy-state').textContent = '';
+    showPackage(opener);
   };
-  get('notes-close').addEventListener('click', closeNotes);
-  notesDialog.addEventListener('cancel', (event) => { event.preventDefault(); closeNotes(); });
-  let pointerStartedOutside = false;
-  const outsideNotes = (event) => {
-    const bounds = notesDialog.getBoundingClientRect();
-    return event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
-  };
-  notesDialog.addEventListener('pointerdown', (event) => { pointerStartedOutside = outsideNotes(event); });
-  notesDialog.addEventListener('click', (event) => {
-    if (pointerStartedOutside && outsideNotes(event)) closeNotes();
-    pointerStartedOutside = false;
-  });
-  notesDialog.addEventListener('close', () => {
-    document.documentElement.classList.remove('is-notes-open');
-    notesOpener?.focus({ preventScroll: true });
-  });
 
   let latestRelease;
   let selectedAsset;
@@ -135,9 +160,6 @@
     get('size').textContent = size(asset.sizeBytes);
     get('system').textContent = system(asset.minSdk ?? latestRelease.minSdk);
     get('filename').textContent = asset.name;
-    get('package').textContent = asset.packageName || '未提供';
-    get('sha').textContent = asset.sha256 || '未提供';
-    get('copy-sha').hidden = !asset.sha256;
     get('download-link').href = downloadUrl(asset);
     get('download-link').setAttribute('download', asset.name);
     get('download-link').setAttribute('aria-label', `下载财小通 ${latestRelease.versionName}，${asset.name}`);
@@ -168,7 +190,6 @@
         return option;
       }));
       get('asset-picker').hidden = release.assets.length <= 1;
-      get('latest-content').querySelectorAll('details').forEach((details) => { details.open = false; });
       selectAsset(release.assets[0]);
       get('latest-content').hidden = false;
       get('latest-state').hidden = true;
@@ -185,8 +206,9 @@
     }
   };
   get('latest-notes-open').addEventListener('click', (event) => openNotes(latestRelease, event.currentTarget));
+  get('package-open').addEventListener('click', (event) => openPackage(latestRelease, selectedAsset, event.currentTarget));
   get('asset-select').addEventListener('change', (event) => selectAsset(latestRelease.assets[Number(event.target.value)]));
-  get('copy-sha').addEventListener('click', () => copy(selectedAsset.sha256));
+  get('copy-sha').addEventListener('click', () => copy(get('package-sha').textContent, get('package-copy-state')));
   get('copy-page').addEventListener('click', () => {
     const url = new URL(location.href);
     url.hash = '';
@@ -280,6 +302,13 @@
       const metadata = make('p', 'history-asset__meta');
       metadata.append(make('span', '', system(asset.minSdk ?? release.minSdk)), make('span', '', size(asset.sizeBytes)));
       info.append(metadata);
+      const detailsButton = make('button', 'notes-link history-package-link', '详情与校验');
+      detailsButton.type = 'button';
+      detailsButton.setAttribute('aria-haspopup', 'dialog');
+      detailsButton.setAttribute('aria-controls', packageDialog.id);
+      detailsButton.append(icon('m8 5 5 5-5 5'));
+      detailsButton.addEventListener('click', () => openPackage(release, asset, detailsButton));
+      info.append(detailsButton);
       const link = make('a', '', '下载安装包');
       link.href = downloadUrl(asset);
       link.setAttribute('download', asset.name);
