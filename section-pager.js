@@ -2,7 +2,9 @@
   const desktop = matchMedia('(min-width: 1101px) and (min-height: 700px) and (hover: hover) and (pointer: fine)');
   const touch = matchMedia('(pointer: coarse)');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  const sections = [...document.querySelectorAll('.hero, .showcase, #features, .detail-row, .download-section, .footer')];
+  const explicitSections = [...document.querySelectorAll('[data-page-section]')];
+  const sections = explicitSections.length ? explicitSections : [...document.querySelectorAll('.hero, .showcase, #features, .detail-row, .download-section, .footer')];
+  if (sections.length < 2) return;
   let lastWheel = 0;
   let wheelDistance = 0;
   let gestureUsed = false;
@@ -25,9 +27,9 @@
   const positions = () => {
     const inset = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
     const limit = document.documentElement.scrollHeight - innerHeight;
-    return sections.map((section) => {
+    return sections.map((section, index) => {
       const top = layoutTop(section);
-      const start = Math.max(0, Math.min(limit, top - inset));
+      const start = index === 0 && explicitSections.length ? 0 : Math.max(0, Math.min(limit, top - inset));
       const room = innerHeight - (top - start);
       // Read oversized content before leaving its module.
       const content = section.querySelector('.showcase__inner, .detail-row__visual--theme') ?? section;
@@ -127,10 +129,11 @@
 
   document.addEventListener('keydown', (event) => {
     if (!enabled() || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.target.closest('input, textarea, select, button, a, [contenteditable], [role="tab"]')) return;
+    if (event.target.closest('input, textarea, select, button, a, summary, [contenteditable], [role="tab"]')) return;
     const direction = event.key === 'PageDown' || (event.key === ' ' && !event.shiftKey) ? 1 :
       event.key === 'PageUp' || (event.key === ' ' && event.shiftKey) ? -1 : 0;
     if (!direction) return;
+    if (nestedScrollCanMove(event, direction)) return;
     event.preventDefault();
     if (!event.repeat) move(direction);
   });

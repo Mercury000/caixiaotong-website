@@ -14,6 +14,7 @@
   <script src="media-ready.js" defer></script>
   <script src="script.js" defer></script>
   <script src="download.js" defer></script>
+  <script src="section-pager.js" defer></script>
 </head>
 <body class="download-page">
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -36,17 +37,21 @@
     </nav>
   </header>
   <main class="shell download-main" id="main">
+    <div class="download-start" data-page-section>
     <section class="download-intro" aria-labelledby="page-title">
       <span class="kicker reveal">把校园日常，装进口袋</span>
       <h1 class="reveal reveal--delay-1" id="page-title">下载<span>财小通</span></h1>
       <p class="reveal reveal--delay-2">付款、缴费、查账。你的校园一卡通，随时在手边。</p>
     </section>
     <section class="download-hero" id="latest" aria-label="最新版本下载">
-      <div class="release-card reveal reveal--delay-3">
+      <div class="release-card reveal reveal--delay-3" data-latest-panel aria-busy="true">
         <div class="release-card__heading"><div><span class="section-label">最新版本</span><h2>校园日常，随手开启。</h2></div><span class="platform-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 4-2-2m12 2 2-2M4 12a8 8 0 0 1 16 0v6H4zM8 18v3m8-3v3M2 12v5m20-5v5"/><path d="M8 8h.01M16 8h.01"/></svg>Android</span></div>
         <p class="release-intro">获取最新正式版，让日常所需就在手边。</p>
-        <div data-latest-state class="release-state" role="status"><span class="loading-dot" aria-hidden="true"></span>正在获取最新版本…</div>
-        <button class="button button--ghost" type="button" data-latest-retry hidden>重新获取</button>
+        <div data-latest-state class="release-state" aria-hidden="true" inert>
+          <div class="release-identity"><img src="assets/logo.svg" width="56" height="56" alt=""><div class="skeleton-identity"><span class="skeleton-line skeleton-line--title"></span><span class="skeleton-line skeleton-line--short"></span></div></div>
+          <div class="skeleton-meta"><div><span class="skeleton-line skeleton-line--short"></span><span class="skeleton-line"></span></div><div><span class="skeleton-line skeleton-line--short"></span><span class="skeleton-line"></span></div><div><span class="skeleton-line skeleton-line--short"></span><span class="skeleton-line"></span></div></div>
+          <div class="skeleton-line skeleton-button"></div><span class="skeleton-line skeleton-filename"></span><div class="skeleton-notes"><span class="skeleton-line skeleton-line--short"></span><span class="skeleton-line skeleton-line--short"></span></div>
+        </div>
         <div data-latest-content hidden>
           <div class="release-identity"><img src="assets/logo.svg" width="56" height="56" alt=""><div><h3>财小通 <span data-version></span></h3><p data-release-name></p></div><span class="release-badge" data-release-badge>正式版</span></div>
           <dl class="release-meta"><div><dt>更新日期</dt><dd data-published></dd></div><div><dt>系统要求</dt><dd data-system></dd></div><div><dt>安装包大小</dt><dd data-size></dd></div></dl>
@@ -55,9 +60,8 @@
           <p class="download-filename" data-filename></p>
           <p class="device-hint" data-device-hint hidden></p>
           <details class="package-details"><summary>安装包详情与校验</summary><dl class="package-meta"><div><dt>支持架构</dt><dd data-abis></dd></div><div><dt>应用包名</dt><dd data-package></dd></div><div><dt>SHA-256</dt><dd><code data-sha></code><button class="text-button" type="button" data-copy-sha>复制校验值</button></dd></div></dl></details>
-          <details class="latest-notes"><summary>本次更新了什么<span>查看更新说明<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></span></summary><div class="release-notes" data-latest-notes></div></details>
+          <div class="latest-notes"><span>本次更新了什么</span><button class="notes-link" type="button" data-latest-notes-open aria-haspopup="dialog" aria-controls="release-notes-dialog">查看更新说明<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></button></div>
         </div>
-        <noscript><p>请启用 JavaScript 以获取实时版本和安装包。</p></noscript>
       </div>
       <aside class="download-visual reveal reveal--delay-2" aria-label="财小通应用预览">
         <div class="download-visual__copy"><span>小而轻，随手用。</span><p>校园日常，从这里开始。</p></div>
@@ -65,18 +69,23 @@
         <div class="download-visual__footer"><span>手机 · 平板</span><a href="index.html#experience">探索应用<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-4-4 4 4-4 4"/></svg></a></div>
       </aside>
     </section>
-    <section class="history-section" id="history" aria-labelledby="history-title">
+    </div>
+    <section class="history-section" id="history" aria-labelledby="history-title" data-page-section>
       <div class="download-section-heading reveal"><div><span class="kicker">每一步，都在变得更好</span><h2 id="history-title">版本记录</h2></div><p>每次更新的变化，都在这里。</p></div>
       <form class="history-toolbar reveal reveal--delay-1" data-search-form role="search" aria-label="搜索历史版本"><div class="history-search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><input type="search" name="q" data-search maxlength="100" aria-label="搜索版本号或更新内容" placeholder="搜索版本号或更新内容" autocomplete="off"><button class="text-button" type="submit">搜索</button></div><span class="history-caption" data-history-total></span></form>
-      <p class="history-status" data-history-status role="status">正在获取版本记录…</p>
-      <div class="release-list" data-release-list aria-busy="true"></div>
-      <div class="history-actions"><button class="button button--ghost" type="button" data-history-retry hidden>重新获取</button><button class="button button--ghost" type="button" data-load-more hidden>加载更多版本<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></button></div>
+      <p class="history-status" data-history-status role="status"></p>
+      <div class="history-records" data-history-records tabindex="0" role="region" aria-label="正式版记录" aria-busy="true">
+        <div class="release-list" data-release-list></div>
+        <div class="release-list history-skeleton" data-history-skeleton aria-hidden="true" inert></div>
+        <div class="history-actions"><button class="button button--ghost" type="button" data-load-more hidden>加载更多版本<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></button></div>
+      </div>
+      <template id="history-skeleton-template"><article class="history-release"><div class="history-release__meta"><span class="skeleton-line skeleton-line--title"></span><span class="skeleton-line skeleton-line--short"></span></div><div class="history-release__content"><div class="skeleton-highlights"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-line--short"></span></div><span class="skeleton-line skeleton-disclosure"></span><div class="history-assets history-asset"><span class="skeleton-line skeleton-line--short"></span><span class="skeleton-line skeleton-button"></span></div></div></article></template>
     </section>
-    <section class="install-section" id="install" aria-labelledby="install-title">
+    <section class="install-section" id="install" aria-labelledby="install-title" data-page-section>
       <div class="download-section-heading reveal"><div><span class="kicker">三步，开始使用</span><h2 id="install-title">安装很简单。</h2></div><p>在 Android 手机上完成安装，使用本人校园卡登录。</p></div>
       <div class="install-grid"><article class="reveal"><span class="step-number">01</span><h3>下载安装包</h3><p>选择适合你的版本，下载 APK 文件。电脑访问时，可复制此页面链接到手机打开。</p><button class="text-button" type="button" data-copy-page>复制下载页链接<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M12 7V3H3v9h4"/></svg></button></article><article class="reveal reveal--delay-1"><span class="step-number">02</span><h3>按系统提示安装</h3><p>打开下载的 APK。如果系统询问安装权限，允许当前浏览器或文件管理器安装应用。</p></article><article class="reveal reveal--delay-2"><span class="step-number">03</span><h3>登录你的校园卡</h3><p>阅读应用内的使用说明，输入本人学号或工号及校园卡查询密码，即可开始使用。</p></article></div>
     </section>
-    <section class="faq-section" aria-labelledby="faq-title">
+    <section class="faq-section" aria-labelledby="faq-title" data-page-section>
       <div class="download-section-heading reveal"><div><span class="kicker">安装前，了解多一点</span><h2 id="faq-title">你可能想知道</h2></div><p>关于设备、安装与更新的几个说明。</p></div>
       <div class="faq-list">
         <details><summary><span>支持哪些设备？</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10"/><path class="faq-plus" d="M10 5v10"/></svg></summary><p>财小通支持 Android 手机和平板。请确认设备满足下载卡片中的系统要求；iPhone 和 iPad 无法安装 APK。</p></details>
@@ -86,6 +95,10 @@
     </section>
     <p class="download-feedback" data-feedback role="status" aria-live="polite"></p>
   </main>
-  <footer class="footer shell"><div class="footer__brand"><span class="media-logo" style="--logo-size: 32px"><img data-media-image src="assets/logo.svg" width="32" height="32" alt=""></span><div><strong>财小通</strong><small>CaiXiaoTong</small></div></div><p>河南财经政法大学校园一卡通第三方客户端，不隶属于学校或一卡通服务提供方。</p><div class="footer__links"><a href="index.html">首页</a><a href="https://github.com/Mercury000/HUEL-yktwx">GitHub</a><a href="https://github.com/Mercury000/HUEL-yktwx/blob/main/LICENSE">GPL-3.0</a></div></footer>
+  <footer class="footer shell" data-page-section><div class="footer__brand"><span class="media-logo" style="--logo-size: 32px"><img data-media-image src="assets/logo.svg" width="32" height="32" alt=""></span><div><strong>财小通</strong><small>CaiXiaoTong</small></div></div><p>河南财经政法大学校园一卡通第三方客户端，不隶属于学校或一卡通服务提供方。</p><div class="footer__links"><a href="index.html">首页</a><a href="https://github.com/Mercury000/HUEL-yktwx">GitHub</a><a href="https://github.com/Mercury000/HUEL-yktwx/blob/main/LICENSE">GPL-3.0</a></div></footer>
+  <dialog class="notes-dialog" id="release-notes-dialog" aria-labelledby="notes-dialog-title">
+    <header class="notes-dialog__header"><div><span class="section-label">更新说明</span><h2 id="notes-dialog-title" data-notes-title></h2><p data-notes-date></p></div><button class="notes-dialog__close" type="button" data-notes-close aria-label="关闭更新说明" autofocus><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></header>
+    <div class="notes-dialog__body release-notes" data-notes-body tabindex="0" role="region" aria-label="更新内容"></div>
+  </dialog>
 </body>
 </html>

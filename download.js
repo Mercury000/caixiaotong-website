@@ -84,10 +84,52 @@
     }
   };
 
+  const notesDialog = document.getElementById('release-notes-dialog');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let notesOpener;
+  let notesAnimation;
+  const openNotes = (release, opener) => {
+    if (!release || notesDialog.open) return;
+    notesOpener = opener;
+    get('notes-title').textContent = `财小通 v${release.versionName}`;
+    get('notes-date').textContent = date(release.publishedAt);
+    renderNotes(get('notes-body'), release.notes);
+    notesDialog.showModal();
+    document.documentElement.classList.add('is-notes-open');
+    get('notes-body').scrollTop = 0;
+  };
+  const closeNotes = () => {
+    if (!notesDialog.open || notesAnimation) return;
+    if (reducedMotion.matches) { notesDialog.close(); return; }
+    notesAnimation = notesDialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'ease-out' });
+    notesAnimation.onfinish = () => { notesAnimation = null; notesDialog.close(); };
+  };
+  get('notes-close').addEventListener('click', closeNotes);
+  notesDialog.addEventListener('cancel', (event) => { event.preventDefault(); closeNotes(); });
+  let pointerStartedOutside = false;
+  const outsideNotes = (event) => {
+    const bounds = notesDialog.getBoundingClientRect();
+    return event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  };
+  notesDialog.addEventListener('pointerdown', (event) => { pointerStartedOutside = outsideNotes(event); });
+  notesDialog.addEventListener('click', (event) => {
+    if (pointerStartedOutside && outsideNotes(event)) closeNotes();
+    pointerStartedOutside = false;
+  });
+  notesDialog.addEventListener('close', () => {
+    document.documentElement.classList.remove('is-notes-open');
+    notesOpener?.focus({ preventScroll: true });
+  });
+
   let latestRelease;
   let selectedAsset;
   let latestRequest;
   let latestSequence = 0;
+  let latestRetryTimer;
+  let latestRetryCount = 0;
+  let latestPending = true;
+  let latestBusy = false;
+  const retryDelays = [2000, 5000, 12000];
   const selectAsset = (asset) => {
     selectedAsset = asset;
     get('size').textContent = size(asset.sizeBytes);
@@ -101,15 +143,18 @@
     get('download-link').setAttribute('download', asset.name);
     get('download-link').setAttribute('aria-label', `下载财小通 ${latestRelease.versionName}，${asset.name}`);
   };
-  const loadLatest = async () => {
+  const loadLatest = async (retry = false) => {
+    clearTimeout(latestRetryTimer);
+    if (!retry) latestRetryCount = 0;
     const sequence = ++latestSequence;
     latestRequest?.controller.abort();
     latestRequest = timedController();
     const current = latestRequest;
-    get('latest-content').hidden = true;
-    get('latest-retry').hidden = true;
-    get('latest-state').hidden = false;
-    get('latest-state').replaceChildren(make('span', 'loading-dot'), document.createTextNode('正在获取最新版本…'));
+    latestPending = true;
+    latestBusy = true;
+    get('latest-panel').setAttribute('aria-busy', 'true');
+    get('latest-content').hidden = !latestRelease;
+    get('latest-state').hidden = Boolean(latestRelease);
     try {
       const release = await request('/v1/releases/latest?channel=stable', current.controller.signal);
       if (sequence !== latestSequence) return;
@@ -126,16 +171,21 @@
       get('asset-picker').hidden = release.assets.length <= 1;
       get('latest-content').querySelectorAll('details').forEach((details) => { details.open = false; });
       selectAsset(release.assets[0]);
-      renderNotes(get('latest-notes'), release.notes);
       get('latest-content').hidden = false;
       get('latest-state').hidden = true;
-    } catch (error) {
+      latestPending = false;
+      get('latest-panel').setAttribute('aria-busy', 'false');
+    } catch {
       if (sequence !== latestSequence) return;
-      get('latest-state').textContent = error.status === 404 ? '暂无可下载的正式版本，请稍后再来。' : '暂时无法获取最新版本，请重试。';
-      get('latest-retry').hidden = false;
-    } finally { current.clear(); }
+      if (latestRetryCount < retryDelays.length) {
+        latestRetryTimer = setTimeout(() => loadLatest(true), retryDelays[latestRetryCount++]);
+      }
+    } finally {
+      current.clear();
+      if (sequence === latestSequence) latestBusy = false;
+    }
   };
-  get('latest-retry').addEventListener('click', loadLatest);
+  get('latest-notes-open').addEventListener('click', (event) => openNotes(latestRelease, event.currentTarget));
   get('asset-select').addEventListener('change', (event) => selectAsset(latestRelease.assets[Number(event.target.value)]));
   get('copy-sha').addEventListener('click', () => copy(selectedAsset.sha256));
   get('copy-page').addEventListener('click', () => {
@@ -159,8 +209,16 @@
   let searchTimer;
   let historyQuery = '';
   let retryAppend = false;
+  let historyRetryTimer;
+  let historyRetryCount = 0;
+  let historyPending = true;
+  let historyBusy = false;
   const knownIds = new Set();
-  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const showHistorySkeleton = (append) => {
+    const template = document.getElementById('history-skeleton-template');
+    get('history-skeleton').replaceChildren(...Array.from({ length: append ? 1 : 3 }, () => template.content.cloneNode(true)));
+    get('history-skeleton').hidden = false;
+  };
   const animateDisclosure = (card, stateAttribute) => {
     const summary = card.querySelector('summary');
     let animation;
@@ -208,14 +266,13 @@
       highlights.forEach((text) => list.append(make('li', '', text)));
       content.append(list);
     } else content.append(make('p', 'history-empty-notes', '此版本未提供更新摘要。'));
-    const disclosure = make('details', 'history-notes');
-    const summary = make('summary');
-    summary.append(make('span', 'history-notes__closed', '查看完整更新说明'), make('span', 'history-notes__open', '收起更新说明'), icon('m6 8 4 4 4-4'));
-    const notes = make('div', 'release-notes');
-    renderNotes(notes, release.notes);
-    disclosure.append(summary, notes);
-    animateDisclosure(disclosure, 'historyExpanded');
-    content.append(disclosure);
+    const notesButton = make('button', 'notes-link history-notes-link', '查看完整更新说明');
+    notesButton.type = 'button';
+    notesButton.setAttribute('aria-haspopup', 'dialog');
+    notesButton.setAttribute('aria-controls', notesDialog.id);
+    notesButton.append(icon('m8 5 5 5-5 5'));
+    notesButton.addEventListener('click', () => openNotes(release, notesButton));
+    content.append(notesButton);
     const assets = make('div', 'history-assets');
     for (const asset of release.assets) {
       const row = make('div', 'history-asset');
@@ -236,21 +293,26 @@
     item.append(meta, content);
     return item;
   };
-  const loadHistory = async (append = false) => {
+  const loadHistory = async (append = false, retry = false) => {
+    clearTimeout(historyRetryTimer);
+    if (!retry) historyRetryCount = 0;
     const sequence = ++historySequence;
     historyRequest?.controller.abort();
     historyRequest = timedController();
     const current = historyRequest;
     retryAppend = append;
-    if (!append) {
+    historyPending = true;
+    historyBusy = true;
+    if (!append && !retry) {
       cursor = null;
       knownIds.clear();
       get('release-list').replaceChildren();
       get('history-total').textContent = '';
+      get('history-records').scrollTop = 0;
     }
-    get('release-list').setAttribute('aria-busy', 'true');
-    get('history-status').textContent = append ? '正在加载更多版本…' : '正在获取版本记录…';
-    get('history-retry').hidden = true;
+    get('history-records').setAttribute('aria-busy', 'true');
+    get('history-status').textContent = '';
+    showHistorySkeleton(append);
     get('load-more').hidden = true;
     const params = new URLSearchParams({ channel: 'stable', limit: '10', q: historyQuery });
     if (append && cursor) params.set('cursor', cursor);
@@ -265,39 +327,55 @@
         fragment.append(historyItem(release));
       }
       get('release-list').append(fragment);
+      get('history-skeleton').hidden = true;
       cursor = response.nextCursor || null;
       get('history-total').textContent = `${response.total} 个版本`;
       get('history-status').textContent = response.total === 0 ? historyQuery ? '没有找到匹配的正式版本，试试其他关键词。' : '暂无正式版记录。' : '';
       get('load-more').hidden = !cursor;
+      historyPending = false;
     } catch (error) {
       if (sequence !== historySequence) return;
       if (error.status === 400 && append) {
-        retryAppend = false;
-        get('history-status').textContent = '版本记录已更新，请重新获取列表。';
-      } else get('history-status').textContent = append ? '更多版本暂时加载失败，请重试。' : '暂时无法获取版本记录，请重试。';
-      get('history-retry').hidden = false;
+        // An expired cursor restarts from page one while preserving readable cards.
+        cursor = null;
+      }
+      if (historyRetryCount < retryDelays.length) {
+        historyRetryTimer = setTimeout(() => loadHistory(append, true), retryDelays[historyRetryCount++]);
+      }
     } finally {
       current.clear();
-      if (sequence === historySequence) get('release-list').setAttribute('aria-busy', 'false');
+      if (sequence === historySequence) {
+        historyBusy = false;
+        get('history-records').setAttribute('aria-busy', String(historyPending));
+      }
     }
   };
   const searchHistory = () => {
     clearTimeout(searchTimer);
+    clearTimeout(historyRetryTimer);
     historyQuery = get('search').value.trim();
     loadHistory();
   };
   get('search-form').addEventListener('submit', (event) => { event.preventDefault(); searchHistory(); });
   get('search').addEventListener('input', () => {
     clearTimeout(searchTimer);
+    clearTimeout(historyRetryTimer);
     // Cancel before the debounce, so an old response cannot overwrite a new search.
     historySequence++;
     historyRequest?.controller.abort();
+    historyBusy = false;
     get('load-more').hidden = true;
-    get('history-retry').hidden = true;
     searchTimer = setTimeout(searchHistory, 300);
   });
   get('load-more').addEventListener('click', () => loadHistory(true));
-  get('history-retry').addEventListener('click', () => loadHistory(retryAppend));
+
+  const resumeRequests = () => {
+    if (document.hidden || !navigator.onLine) return;
+    if (latestPending && !latestBusy) loadLatest();
+    if (historyPending && !historyBusy) loadHistory(retryAppend, true);
+  };
+  window.addEventListener('online', resumeRequests);
+  document.addEventListener('visibilitychange', resumeRequests);
 
   document.querySelectorAll('.faq-list details').forEach((card) => animateDisclosure(card, 'faqExpanded'));
 
