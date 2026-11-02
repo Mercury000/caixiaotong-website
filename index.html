@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f5f5f7">
   <meta name="description" content="财小通——为河南财经政法大学打造的校园一卡通 Android 客户端。付款、缴费、账单与校园卡管理，一站完成。">
+  <meta name="release-api" content="">
   <title>财小通 · 校园生活，一触即达</title>
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
   <script src="site-theme.js"></script>
   <link rel="stylesheet" href="styles.css">
   <script src="media-ready.js" defer></script>
   <script src="script.js" defer></script>
+  <script src="home-release.js" defer></script>
   <script src="demo-player.js" defer></script>
   <script src="promo-player.js" defer></script>
   <script src="section-pager.js" defer></script>
@@ -73,7 +75,7 @@
             观看介绍
           </button>
         </div>
-        <p class="hero__meta reveal reveal--delay-4">Android 14+ <span>·</span> v1.1.0 <span>·</span> 非官方项目</p>
+        <p class="hero__meta reveal reveal--delay-4" data-home-release="hero">非官方项目</p>
       </div>
 
       <div class="hero__visual reveal reveal--delay-2" data-tilt>
@@ -304,7 +306,7 @@
       <span class="media-logo" style="--logo-size: 78px"><img data-media-image src="assets/logo.svg" width="78" height="78" alt="财小通图标"></span>
       <span class="kicker">现在开始</span>
       <h2 id="download-title">让校园生活，简单一点。</h2>
-      <p>v1.1.0 <span>·</span> Android 14 及以上 <span>·</span> 非官方客户端</p>
+      <p data-home-release="download">非官方客户端</p>
       <a class="button button--light" href="download.html">
         前往下载页
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m0 0-4-4m4 4-4 4"/></svg>
